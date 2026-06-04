@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpinWinToken</title>
+    <script>
+        // Extract referral code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const ref = urlParams.get("ref");
+
+        // If referral code exists → use it
+        if (ref && ref.trim() !== "") {
+            window.location.href = "createaccount.html?ref=" + encodeURIComponent(ref);
+        } 
+        // If no referral code → use system referral code SPINROOT
+        else {
+            window.location.href = "createaccount.html?ref=SPINROOT";
+        }
+    </script>
+</head>
+<body>
+</body>
+</html>
