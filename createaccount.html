@@ -82,12 +82,12 @@ const supabase = supabase.createClient(
     "YOUR_SUPABASE_ANON_KEY"
 );
 
-// Ensure referral code ALWAYS appears
-window.onload = function () {
+// ⭐ ALWAYS SHOW REFERRAL CODE — strongest fix
+document.addEventListener("DOMContentLoaded", function () {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get("ref") || "SPINROOT";
     document.getElementById("referralText").innerText = "Referral: " + ref;
-};
+});
 
 async function createAccount() {
     const email = document.getElementById("email").value.trim();
@@ -137,4 +137,5 @@ async function createAccount() {
 
 </body>
 </html>
+
 
