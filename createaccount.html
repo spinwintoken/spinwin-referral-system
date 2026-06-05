@@ -7,15 +7,95 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: 400px; margin: 0 auto; }
-    label { display: block; margin-top: 10px; }
-    input { width: 100%; padding: 8px; margin-top: 4px; }
-    button { margin-top: 15px; padding: 10px; width: 100%; }
-    .message { margin-top: 10px; font-size: 0.9rem; }
-    .error { color: #b00020; }
-    .success { color: #006400; }
-    .link { margin-top: 15px; text-align: center; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #ffd700;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #ffd700;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      background: #222;
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      color: #ffd700;
+    }
+
+    input::placeholder {
+      color: #bfa600;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #e6c200;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+
+    .error {
+      color: #ff4d4d;
+    }
+
+    .success {
+      color: #00ff88;
+    }
+
+    .link {
+      margin-top: 18px;
+      text-align: center;
+      color: #ffd700;
+    }
+
+    .link a {
+      color: #00aaff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .link a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 
@@ -25,16 +105,16 @@
 
     <form id="createAccountForm">
       <label for="email">Email</label>
-      <input type="email" id="email" required />
+      <input type="email" id="email" placeholder="Enter email" required />
 
       <label for="password">Password</label>
-      <input type="password" id="password" required minlength="6" />
+      <input type="password" id="password" placeholder="Enter password" required minlength="6" />
 
       <label for="confirmPassword">Confirm Password</label>
-      <input type="password" id="confirmPassword" required minlength="6" />
+      <input type="password" id="confirmPassword" placeholder="Confirm password" required minlength="6" />
 
-      <!-- ⭐ Referral code moved INSIDE the form -->
-      <div id="refInfo" class="message" style="font-weight:bold;"></div>
+      <!-- ⭐ Referral code INSIDE the form -->
+      <div id="refInfo" class="message" style="font-weight:bold; color:#ffd700;"></div>
 
       <button type="submit">Create Account</button>
     </form>
