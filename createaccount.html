@@ -77,12 +77,13 @@ button:hover {
 </div>
 
 <script>
-const supabase = supabase.createClient(
+// ✅ FIX: use a different variable name so we don't shadow the global supabase
+const sb = window.supabase.createClient(
     "YOUR_SUPABASE_URL",
     "YOUR_SUPABASE_ANON_KEY"
 );
 
-// ⭐ ALWAYS SHOW REFERRAL CODE — strongest fix
+// Always show referral code
 document.addEventListener("DOMContentLoaded", function () {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get("ref") || "SPINROOT";
@@ -108,7 +109,7 @@ async function createAccount() {
     const token = await grecaptcha.enterprise.execute("YOUR_RECAPTCHA_KEY", { action: "signup" });
 
     // Supabase signup
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await sb.auth.signUp({
         email: email,
         password: password,
         options: {
@@ -125,7 +126,7 @@ async function createAccount() {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get("ref") || "SPINROOT";
 
-    await supabase.from("usersql").insert({
+    await sb.from("usersql").insert({
         email: email,
         referralcode: ref,
         indicator: 1
@@ -137,5 +138,6 @@ async function createAccount() {
 
 </body>
 </html>
+
 
 
