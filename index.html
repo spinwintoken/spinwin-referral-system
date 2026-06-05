@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SpinWinToken</title>
+</head>
+<body>
+<script>
+  const hash = window.location.hash;
+
+  // If Supabase sent an access token after email confirmation
+  if (hash.includes("access_token")) {
+    window.location.href = "registerconfirm.html" + hash;
+  } 
+  else {
+    // No token → user is not confirming email → go to create account
+    window.location.href = "createaccount.html" + window.location.search;
+  }
+</script>
+</body>
+</html>
