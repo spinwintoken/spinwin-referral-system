@@ -159,7 +159,7 @@
       }
 
       try {
-        // 0) Check if user already exists in UsersSQL
+        // 0) Check if user already exists in UsersSQL by email
         const { data: existingUser, error: checkError } = await client
           .from("UsersSQL")
           .select("indicator")
@@ -176,16 +176,16 @@
           if (existingUser.indicator === 1) {
             statusEl.textContent = "Account created. Please check your email to confirm.";
             statusEl.classList.add("error");
-            return;
+            return; // 🔴 STOP: do not sign up or insert
           }
           if (existingUser.indicator === 2) {
             statusEl.textContent = "User already exists.";
             statusEl.classList.add("error");
-            return;
+            return; // 🔴 STOP
           }
         }
 
-        // 1) Supabase signup
+        // 1) Supabase signup (only if no existing user)
         const { data, error } = await client.auth.signUp({
           email,
           password,
@@ -210,7 +210,7 @@
         const uid = user.id;
         const referralCode = generateReferralCode();
 
-        // 2) Insert into UsersSQL
+        // 2) Insert into UsersSQL (only once per email)
         const { error: insertError } = await client
           .from("UsersSQL")
           .insert({
@@ -239,3 +239,4 @@
   </script>
 </body>
 </html>
+
