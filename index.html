@@ -1,24 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpinWinToken</title>
-    <script>
-        // Extract referral code from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const ref = urlParams.get("ref");
+<meta charset="UTF-8">
+<title>SpinWinToken</title>
+<script>
+// 1. Detect Supabase confirmation link
+if (window.location.hash.includes("access_token")) {
+    // Send user to registerconfirm.html WITH the token
+    window.location.href = "registerconfirm.html" + window.location.hash;
+} else {
+    // 2. Normal referral flow
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get("ref");
 
-        // If referral code exists → use it
-        if (ref && ref.trim() !== "") {
-            window.location.href = "createaccount.html?ref=" + encodeURIComponent(ref);
-        } 
-        // If no referral code → use system referral code SPINROOT
-        else {
-            window.location.href = "createaccount.html?ref=SPINROOT";
-        }
-    </script>
+    if (ref) {
+        window.location.href = "createaccount.html?ref=" + encodeURIComponent(ref);
+    } else {
+        window.location.href = "createaccount.html?ref=SPINROOT";
+    }
+}
+</script>
 </head>
-<body>
-</body>
+<body></body>
 </html>
