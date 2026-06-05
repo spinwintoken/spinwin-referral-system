@@ -12,7 +12,7 @@
     label { display: block; margin-top: 10px; }
     input { width: 100%; padding: 8px; margin-top: 4px; }
     button { margin-top: 15px; padding: 10px; width: 100%; }
-    .message { margin-top: 15px; font-size: 0.9rem; }
+    .message { margin-top: 10px; font-size: 0.9rem; }
     .error { color: #b00020; }
     .success { color: #006400; }
     .link { margin-top: 15px; text-align: center; }
@@ -33,6 +33,9 @@
       <label for="confirmPassword">Confirm Password</label>
       <input type="password" id="confirmPassword" required minlength="6" />
 
+      <!-- ⭐ Referral code moved INSIDE the form -->
+      <div id="refInfo" class="message" style="font-weight:bold;"></div>
+
       <button type="submit">Create Account</button>
     </form>
 
@@ -40,22 +43,21 @@
       Already have an account? <a href="signin.html">Sign In</a>
     </div>
 
-    <div id="refInfo" class="message"></div>
     <div id="status" class="message"></div>
   </div>
 
   <script>
     const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
-    const supabaseKey = "YOUR_KEY_HERE";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
 
-    // ⭐ FIXED: use window.supabase
+    // ⭐ FIXED: use window.supabase to avoid JS crash
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     const form = document.getElementById("createAccountForm");
     const statusEl = document.getElementById("status");
     const refInfoEl = document.getElementById("refInfo");
 
-    // ⭐ Referral ALWAYS shows now
+    // ⭐ Referral ALWAYS shows (inside form)
     const urlParams = new URLSearchParams(window.location.search);
     let ref = urlParams.get("ref") || "SPINROOT";
     refInfoEl.textContent = "Referral: " + ref;
@@ -80,6 +82,7 @@
       }
 
       try {
+        // 1) Supabase signup
         const { data, error } = await client.auth.signUp({
           email,
           password,
@@ -105,6 +108,7 @@
         const referralCode = generateReferralCode();
         const now = new Date().toISOString();
 
+        // 2) Insert into usersql
         const { error: insertError } = await client
           .from("usersql")
           .insert({
@@ -141,6 +145,7 @@
   </script>
 </body>
 </html>
+
 
 
 
