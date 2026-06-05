@@ -77,13 +77,13 @@ button:hover {
 </div>
 
 <script>
-// ✅ FIX: use a different variable name so we don't shadow the global supabase
+// ⭐ FIXED: use sb instead of supabase to avoid breaking JS
 const sb = window.supabase.createClient(
     "YOUR_SUPABASE_URL",
     "YOUR_SUPABASE_ANON_KEY"
 );
 
-// Always show referral code
+// ⭐ ALWAYS SHOW REFERRAL CODE
 document.addEventListener("DOMContentLoaded", function () {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get("ref") || "SPINROOT";
@@ -138,6 +138,7 @@ async function createAccount() {
 
 </body>
 </html>
+
 
 
 
