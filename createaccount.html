@@ -188,9 +188,9 @@
         const referralCode = generateReferralCode();
         const now = new Date().toISOString();
 
-        // 2) Insert into usersql
+        // 2) Insert into UsersSQL
         const { error: insertError } = await client
-          .from("usersql")
+          .from("UsersSQL")
           .insert({
             uid,
             email,
