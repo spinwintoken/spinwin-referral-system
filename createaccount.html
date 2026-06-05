@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Account - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .container { max-width: 400px; margin: 0 auto; }
+    label { display: block; margin-top: 10px; }
+    input { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 15px; padding: 10px; width: 100%; }
+    .message { margin-top: 15px; font-size: 0.9rem; }
+    .error { color: #b00020; }
+    .success { color: #006400; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+    <form id="createAccountForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required minlength="6" />
+
+      <button type="submit">Create Account</button>
+    </form>
+
+    <div id="refInfo" class="message"></div>
+    <div id="status" class="message"></div>
+  </div>
+
+  <script>
+    const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const form = document.getElementById("createAccountForm");
+    const statusEl = document.getElementById("status");
+    const refInfoEl = document.getElementById("refInfo");
+
+    // Get referral from URL (?ref=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    let ref = urlParams.get("ref") || "SPINROOT";
+    refInfoEl.textContent = "Referral: " + ref;
+
+    function generateReferralCode() {
+      // Simple deterministic code based on timestamp
+      return "SW" + Date.now().toString(36).toUpperCase();
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.textContent = "";
+      statusEl.className = "message";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        statusEl.textContent = "Email and password are required.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      try {
+        // 1) Sign up with Supabase Auth
+        const { data, error } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: "https://spinwintoken.com/registerconfirm.html"
+          }
+        });
+
+        if (error) {
+          statusEl.textContent = "Signup error: " + error.message;
+          statusEl.classList.add("error");
+          return;
+        }
+
+        const user = data.user;
+        if (!user) {
+          statusEl.textContent = "Signup succeeded, but user object is missing.";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        const uid = user.id;
+        const referralCode = generateReferralCode();
+        const now = new Date().toISOString();
+
+        // 2) Insert profile row into usersql
+        const { error: insertError } = await client
+          .from("usersql")
+          .insert({
+            uid: uid,
+            email: email,
+            joindate: now,
+            referralcode: referralCode,
+            referred_by: ref,
+            indicator: 1,
+            teammembers: 0,
+            teamtoken: 0,
+            teamtokenpurchased: 0,
+            teamtokenavailabe: 0,
+            maxtoken: 0,
+            auth: 1
+          });
+
+        if (insertError) {
+          statusEl.textContent =
+            "Account created, but profile insert failed: " + insertError.message;
+          statusEl.classList.add("error");
+          return;
+        }
+
+        statusEl.textContent =
+          "Account created. Please check your email to confirm your address.";
+        statusEl.classList.add("success");
+        form.reset();
+      } catch (err) {
+        statusEl.textContent = "Unexpected error: " + err.message;
+        statusEl.classList.add("error");
+      }
+    });
+  </script>
+</body>
+</html>
