@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>reCAPTCHA Test</title>
+
+  <!-- reCAPTCHA ENTERPRISE -->
+  <script src="https://www.google.com/recaptcha/enterprise.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial;
+      padding: 40px;
+    }
+    #tokenBox {
+      margin-top: 20px;
+      padding: 15px;
+      background: #111;
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      word-break: break-all;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>reCAPTCHA Test (No Database)</h1>
+
+  <p>If reCAPTCHA is working, a token will appear below:</p>
+
+  <div id="tokenBox">Waiting for token...</div>
+
+  <script>
+    function getToken() {
+      grecaptcha.enterprise.execute(
+        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+        { action: "test" }
+      ).then(token => {
+        document.getElementById("tokenBox").textContent = token;
+      });
+    }
+
+    grecaptcha.enterprise.ready(() => {
+      getToken();
+      setInterval(getToken, 120000); // refresh every 2 minutes
+    });
+  </script>
+
+</body>
+</html>
