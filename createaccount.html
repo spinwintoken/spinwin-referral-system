@@ -8,20 +8,6 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- reCAPTCHA v3 -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP"></script>
-  <script>
-      async function refreshRecaptchaToken() {
-          const token = await grecaptcha.execute(
-              '6LdZcA8tAAAAAPMi9TGkyIge6Cktbh5uO0WuNIPN',
-              { action: 'submit' }
-          );
-          document.getElementById('recaptchaToken').value = token;
-      }
-      grecaptcha.ready(refreshRecaptchaToken);
-      setInterval(refreshRecaptchaToken, 120000);
-  </script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -112,7 +98,33 @@
     .link a:hover {
       text-decoration: underline;
     }
+
+    #recaptchaError {
+      display:none;
+      background:#330000;
+      color:#FF4D4D;
+      padding:10px;
+      margin-top:12px;
+      border-radius:6px;
+      border:1px solid #FF4D4D;
+      font-size:14px;
+    }
   </style>
+
+  <!-- reCAPTCHA v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6LdrdA8tAAAAAAeIvjfjsDENLD8DpD4qRBDfcSZR"></script>
+  <script>
+      async function refreshRecaptchaToken() {
+          const token = await grecaptcha.execute(
+              '6LdrdA8tAAAAAAeIvjfjsDENLD8DpD4qRBDfcSZR',
+              { action: 'submit' }
+          );
+          document.getElementById('recaptchaToken').value = token;
+      }
+      grecaptcha.ready(refreshRecaptchaToken);
+      setInterval(refreshRecaptchaToken, 120000);
+  </script>
+
 </head>
 
 <body>
@@ -131,7 +143,10 @@
       <label>Confirm Password</label>
       <input type="password" id="confirmPassword" placeholder="Confirm password" required minlength="6" />
 
-      <div id="refInfo" class="message" style="font-weight:bold; color:#ffd700;"></div>
+      <label>Referral Code</label>
+      <input type="text" id="referralCode" placeholder="Referral code" required />
+
+      <div id="recaptchaError">reCAPTCHA failed. Please refresh the page.</div>
 
       <button type="submit">Create Account</button>
     </form>
@@ -151,11 +166,11 @@
 
     const form = document.getElementById("createAccountForm");
     const statusEl = document.getElementById("status");
-    const refInfoEl = document.getElementById("refInfo");
 
+    // Auto-fill referral code
     const urlParams = new URLSearchParams(window.location.search);
     let ref = urlParams.get("ref") || "SPINROOT";
-    refInfoEl.textContent = "Referral: " + ref;
+    document.getElementById("referralCode").value = ref;
 
     function generateReferralCode() {
       return "SW" + Date.now().toString(36).toUpperCase();
@@ -169,12 +184,14 @@
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
+      const referralCodeInput = document.getElementById("referralCode").value.trim();
       const recaptchaToken = document.getElementById("recaptchaToken").value;
 
       if (!recaptchaToken) {
-        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
-        statusEl.classList.add("error");
+        document.getElementById("recaptchaError").style.display = "block";
         return;
+      } else {
+        document.getElementById("recaptchaError").style.display = "none";
       }
 
       if (password !== confirmPassword) {
@@ -184,7 +201,7 @@
       }
 
       try {
-        // ⭐ PRE-CHECK
+        // PRE-CHECK
         const { data: existingUser } = await client
           .from("UsersSQL")
           .select("email, indicator")
@@ -204,7 +221,7 @@
           }
         }
 
-        // ⭐ CREATE AUTH USER
+        // CREATE AUTH USER
         const { data, error } = await client.auth.signUp({
           email,
           password,
@@ -229,7 +246,7 @@
         const uid = user.id;
         const referralCode = generateReferralCode();
 
-        // ⭐ INSERT INTO UsersSQL
+        // INSERT INTO UsersSQL
         const { error: insertError } = await client
           .from("UsersSQL")
           .insert({
@@ -237,7 +254,7 @@
             email: email,
             indicator: 1,
             referralcode: referralCode,
-            referred_by: ref,
+            referred_by: referralCodeInput,
             teammembers: 0,
             teamtoken: 0,
             teamtokenpurchased: 0,
@@ -247,7 +264,6 @@
             totp_enabled: false
           });
 
-        // ⭐ Replace duplicate-key error with your message
         if (insertError) {
           statusEl.textContent = "Account created. Please check your email to confirm.";
           statusEl.classList.add("success");
@@ -267,3 +283,4 @@
   </script>
 </body>
 </html>
+
