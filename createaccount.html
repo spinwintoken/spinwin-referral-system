@@ -259,7 +259,7 @@
         const uid = user.id;
         const referralCode = generateReferralCode();
 
-        const { error: insertError } = await client
+        await client
           .from("UsersSQL")
           .insert({
             uid: uid,
