@@ -243,13 +243,7 @@
         statusEl.classList.add("error");
       }
     }
-
-    /* ⭐ Submit uses the already‑generated token */
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const token = document.getElementById("recaptchaToken").value;
-      completeSignup(token);
-    });
+);
   </script>
 </body>
 </html>
