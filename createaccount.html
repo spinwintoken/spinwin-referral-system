@@ -143,27 +143,35 @@
     <div id="status" class="message"></div>
   </div>
 
-  <!-- reCAPTCHA v3 (MOVED BELOW FORM SO DOM EXISTS) -->
-  <script src="https://www.google.com/recaptcha/enterprise.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  function refreshRecaptchaToken() {
-    grecaptcha.enterprise.execute(
-      "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
-      { action: "submit" }
-    ).then(token => {
-      const el = document.getElementById("recaptchaToken");
-      if (el) el.value = token;
+  <!-- ⭐ FIXED reCAPTCHA v3 (NO ENTERPRISE) -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP"></script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+
+    async function refreshRecaptchaToken() {
+      try {
+        const token = await grecaptcha.execute(
+          "6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP",
+          { action: "submit" }
+        );
+
+        const el = document.getElementById("recaptchaToken");
+        if (el) el.value = token;
+
+      } catch (err) {
+        console.error("reCAPTCHA error:", err);
+        document.getElementById("recaptchaError").style.display = "block";
+      }
+    }
+
+    grecaptcha.ready(() => {
+      refreshRecaptchaToken();
+      setInterval(refreshRecaptchaToken, 120000);
     });
-  }
 
-  grecaptcha.enterprise.ready(() => {
-    refreshRecaptchaToken();
-    setInterval(refreshRecaptchaToken, 120000);
   });
-});
-</script>
-
+  </script>
 
   <!-- Supabase Logic -->
   <script>
@@ -268,13 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
             totp_enabled: false
           });
 
-        if (insertError) {
-          statusEl.textContent = "Account created. Please check your email to confirm.";
-          statusEl.classList.add("success");
-          form.reset();
-          return;
-        }
-
         statusEl.textContent = "Account created. Please check your email to confirm.";
         statusEl.classList.add("success");
         form.reset();
@@ -287,6 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
 
 
