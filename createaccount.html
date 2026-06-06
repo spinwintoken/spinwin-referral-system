@@ -144,25 +144,26 @@
   </div>
 
   <!-- reCAPTCHA v3 (MOVED BELOW FORM SO DOM EXISTS) -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      function refreshRecaptchaToken() {
-        grecaptcha.execute(
-          "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
-          { action: "submit" }
-        ).then(token => {
-          const el = document.getElementById("recaptchaToken");
-          if (el) el.value = token;
-        });
-      }
-
-      grecaptcha.ready(() => {
-        refreshRecaptchaToken();
-        setInterval(refreshRecaptchaToken, 120000);
-      });
+  <script src="https://www.google.com/recaptcha/enterprise.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  function refreshRecaptchaToken() {
+    grecaptcha.enterprise.execute(
+      "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+      { action: "submit" }
+    ).then(token => {
+      const el = document.getElementById("recaptchaToken");
+      if (el) el.value = token;
     });
-  </script>
+  }
+
+  grecaptcha.enterprise.ready(() => {
+    refreshRecaptchaToken();
+    setInterval(refreshRecaptchaToken, 120000);
+  });
+});
+</script>
+
 
   <!-- Supabase Logic -->
   <script>
