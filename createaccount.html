@@ -112,19 +112,18 @@
   </style>
 
   <!-- reCAPTCHA v3 -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6LdrdA8tAAAAAAeIvjfjsDENLD8DpD4qRBDfcSZR"></script>
-  <script>
-      async function refreshRecaptchaToken() {
-          const token = await grecaptcha.execute(
-              '6LdrdA8tAAAAAAeIvjfjsDENLD8DpD4qRBDfcSZR',
-              { action: 'submit' }
-          );
-          document.getElementById('recaptchaToken').value = token;
-      }
-      grecaptcha.ready(refreshRecaptchaToken);
-      setInterval(refreshRecaptchaToken, 120000);
-  </script>
-
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+<script>
+    async function refreshRecaptchaToken() {
+        const token = await grecaptcha.execute(
+            '6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4',
+            { action: 'submit' }
+        );
+        document.getElementById('recaptchaToken').value = token;
+    }
+    grecaptcha.ready(refreshRecaptchaToken);
+    setInterval(refreshRecaptchaToken, 120000);
+</script>
 </head>
 
 <body>
