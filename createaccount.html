@@ -174,7 +174,6 @@
     const form = document.getElementById("createAccountForm");
     const statusEl = document.getElementById("status");
 
-    // Auto-fill referral code
     const urlParams = new URLSearchParams(window.location.search);
     let ref = urlParams.get("ref") || "SPINROOT";
     document.getElementById("referralCode").value = ref;
@@ -287,5 +286,6 @@
   </script>
 </body>
 </html>
+
 
 
