@@ -110,20 +110,6 @@
       font-size:14px;
     }
   </style>
-
-  <!-- reCAPTCHA v3 -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
-<script>
-    async function refreshRecaptchaToken() {
-        const token = await grecaptcha.execute(
-            '6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4',
-            { action: 'submit' }
-        );
-        document.getElementById('recaptchaToken').value = token;
-    }
-    grecaptcha.ready(refreshRecaptchaToken);
-    setInterval(refreshRecaptchaToken, 120000);
-</script>
 </head>
 
 <body>
@@ -157,6 +143,28 @@
     <div id="status" class="message"></div>
   </div>
 
+  <!-- reCAPTCHA v3 (MOVED BELOW FORM SO DOM EXISTS) -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      function refreshRecaptchaToken() {
+        grecaptcha.execute(
+          "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+          { action: "submit" }
+        ).then(token => {
+          const el = document.getElementById("recaptchaToken");
+          if (el) el.value = token;
+        });
+      }
+
+      grecaptcha.ready(() => {
+        refreshRecaptchaToken();
+        setInterval(refreshRecaptchaToken, 120000);
+      });
+    });
+  </script>
+
+  <!-- Supabase Logic -->
   <script>
     const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
@@ -200,7 +208,6 @@
       }
 
       try {
-        // PRE-CHECK
         const { data: existingUser } = await client
           .from("UsersSQL")
           .select("email, indicator")
@@ -220,7 +227,6 @@
           }
         }
 
-        // CREATE AUTH USER
         const { data, error } = await client.auth.signUp({
           email,
           password,
@@ -245,7 +251,6 @@
         const uid = user.id;
         const referralCode = generateReferralCode();
 
-        // INSERT INTO UsersSQL
         const { error: insertError } = await client
           .from("UsersSQL")
           .insert({
@@ -282,4 +287,5 @@
   </script>
 </body>
 </html>
+
 
