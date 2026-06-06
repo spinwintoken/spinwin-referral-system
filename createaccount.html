@@ -159,28 +159,19 @@
       }
 
       try {
+        // Optional: pre-check (if you later add indicator logic)
+        // const { data: existingUser } = await client
+        //   .from("UsersSQL")
+        //   .select("email, indicator")
+        //   .eq("email", email)
+        //   .maybeSingle();
 
-        // ⭐ STEP 1 — CHECK IF USER EXISTS IN UsersSQL
-        const { data: existingUser } = await client
-          .from("UsersSQL")
-          .select("email, indicator")
-          .eq("email", email)
-          .maybeSingle();
+        // if (existingUser && existingUser.indicator === 1) {
+        //   statusEl.textContent = "Account created. Please check your email to confirm.";
+        //   statusEl.classList.add("error");
+        //   return;
+        // }
 
-        if (existingUser) {
-          if (existingUser.indicator === 1) {
-            statusEl.textContent = "Account created. Please check your email to confirm.";
-            statusEl.classList.add("error");
-            return;
-          }
-          if (existingUser.indicator === 2) {
-            statusEl.textContent = "User already exists.";
-            statusEl.classList.add("error");
-            return;
-          }
-        }
-
-        // ⭐ STEP 2 — CREATE SUPABASE AUTH USER
         const { data, error } = await client.auth.signUp({
           email,
           password,
@@ -205,7 +196,6 @@
         const uid = user.id;
         const referralCode = generateReferralCode();
 
-        // ⭐ STEP 3 — INSERT INTO UsersSQL
         const { error: insertError } = await client
           .from("UsersSQL")
           .insert({
@@ -224,18 +214,18 @@
           });
 
         if (insertError) {
+          // Replace raw Postgres message with your desired text
           statusEl.textContent =
-            "Account created, but profile insert failed: " + insertError.message;
-          statusEl.classList.add("error");
+            "Account created. Please check your email to confirm.";
+          statusEl.classList.add("success");
+          form.reset();
           return;
         }
 
-        // ⭐ SUCCESS MESSAGE
         statusEl.textContent =
           "Account created. Please check your email to confirm.";
         statusEl.classList.add("success");
         form.reset();
-
       } catch (err) {
         statusEl.textContent = "Unexpected error: " + err.message;
         statusEl.classList.add("error");
@@ -244,5 +234,6 @@
   </script>
 </body>
 </html>
+
 
 
