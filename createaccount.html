@@ -8,7 +8,7 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- ⭐ reCAPTCHA v3 (CORRECT SCRIPT) -->
+  <!-- ⭐ reCAPTCHA v3 (CORRECT SCRIPT IN HEAD) -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
 
   <style>
@@ -109,6 +109,7 @@
     <h1>Create Account</h1>
 
     <form id="createAccountForm">
+      <!-- ⭐ Hidden input stays in body -->
       <input type="hidden" id="recaptchaToken">
 
       <label>Email</label>
@@ -231,6 +232,7 @@
       }
     }
 
+    /* ⭐ FIXED reCAPTCHA: token generated on submit ONLY */
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       statusEl.textContent = "Validating reCAPTCHA...";
@@ -252,6 +254,7 @@
   </script>
 </body>
 </html>
+
 
 
 
