@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <!-- ⭐ reCAPTCHA v3 (CORRECT SCRIPT — NO ENTERPRISE) -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP"></script>
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
 
   <script>
       document.addEventListener("DOMContentLoaded", () => {
@@ -17,7 +17,7 @@
           async function refreshRecaptchaToken() {
               try {
                   const token = await grecaptcha.execute(
-                      "6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP",
+                      "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
                       { action: "submit" }
                   );
 
