@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Account - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- reCAPTCHA v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP"></script>
+  <script>
+      async function refreshRecaptchaToken() {
+          const token = await grecaptcha.execute(
+              '6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP',
+              { action: 'submit' }
+          );
+          document.getElementById('recaptchaToken').value = token;
+      }
+      grecaptcha.ready(refreshRecaptchaToken);
+      setInterval(refreshRecaptchaToken, 120000);
+  </script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #ffd700;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #ffd700;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      background: #222;
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      color: #ffd700;
+    }
+
+    input::placeholder {
+      color: #bfa600;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #e6c200;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+
+    .error {
+      color: #ff4d4d;
+    }
+
+    .success {
+      color: #00ff88;
+    }
+
+    .link {
+      margin-top: 18px;
+      text-align: center;
+      color: #ffd700;
+    }
+
+    .link a {
+      color: #00aaff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+
+    <form id="createAccountForm">
+      <input type="hidden" id="recaptchaToken">
+
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="Enter email" required />
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter password" required minlength="6" />
+
+      <label for="confirmPassword">Confirm Password</label>
+      <input type="password" id="confirmPassword" placeholder="Confirm password" required minlength="6" />
+
+      <div id="refInfo" class="message" style="font-weight:bold; color:#ffd700;"></div>
+
+      <button type="submit">Create Account</button>
+    </form>
+
+    <div class="link">
+      Already have an account? <a href="signin.html">Sign In</a>
+    </div>
+
+    <div id="status" class="message"></div>
+  </div>
+
+  <script>
+    const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
+
+    const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const form = document.getElementById("createAccountForm");
+    const statusEl = document.getElementById("status");
+    const refInfoEl = document.getElementById("refInfo");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let ref = urlParams.get("ref") || "SPINROOT";
+    refInfoEl.textContent = "Referral: " + ref;
+
+    function generateReferralCode() {
+      return "SW" + Date.now().toString(36).toUpperCase();
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.textContent = "";
+      statusEl.className = "message";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      const recaptchaToken = document.getElementById("recaptchaToken").value;
+
+      if (!recaptchaToken) {
+        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        statusEl.textContent = "Passwords do not match.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      try {
+        // ⭐ PRE-CHECK: Does email already exist?
+        const { data: existingUser } = await client
+          .from("UsersSQL")
+          .select("email, indicator")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existingUser) {
+          if (existingUser.indicator === 1) {
+            statusEl.textContent = "Account created. Please check your email to confirm.";
+            statusEl.classList.add("error");
+            return;
+          }
+          if (existingUser.indicator === 2) {
+            statusEl.textContent = "User already exists.";
+            statusEl.classList.add("error");
+            return;
+          }
+        }
+
+        // ⭐ CREATE SUPABASE AUTH USER
+        const { data, error } = await client.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: "https://spinwintoken.com/registerconfirm.html"
+          }
+        });
+
+        if (error) {
+          statusEl.textContent = "Signup error: " + error.message;
+          statusEl.classList.add("error");
+          return;
+        }
+
+        const user = data.user;
+        if (!user) {
+          statusEl.textContent = "Signup succeeded, but user object missing.";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        const uid = user.id;
+        const referralCode = generateReferralCode();
+
+        // ⭐ INSERT INTO UsersSQL
+        const { error: insertError } = await client
+          .from("UsersSQL")
+          .insert({
+            uid: uid,
+            email: email,
+            indicator: 1,
+            referralcode: referralCode,
+            referred_by: ref,
+            teammembers: 0,
+            teamtoken: 0,
+            teamtokenpurchased: 0,
+            teamtokenavailabe: 0,
+            maxtoken: 10,
+            totp_secret: null,
+            totp_enabled: false
+          });
+
+        // ⭐ Replace duplicate-key error with your message
+        if (insertError) {
+          statusEl.textContent = "Account created. Please check your email to confirm.";
+          statusEl.classList.add("success");
+          form.reset();
+          return;
+        }
+
+        // ⭐ SUCCESS
+        statusEl.textContent = "Account created. Please check your email to confirm.";
+        statusEl.classList.add("success");
+        form.reset();
+
+      } catch (err) {
+        statusEl.textContent = "Unexpected error: " + err.message;
+        statusEl.classList.add("error");
+      }
+    });
+  </script>
+</body>
+</html>
