@@ -8,37 +8,8 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- ⭐ reCAPTCHA v3 (CORRECT SCRIPT — NO ENTERPRISE) -->
+  <!-- ⭐ reCAPTCHA v3 (CORRECT SCRIPT) -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
-
-  <script>
-      document.addEventListener("DOMContentLoaded", () => {
-
-          async function refreshRecaptchaToken() {
-              try {
-                  const token = await grecaptcha.execute(
-                      "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
-                      { action: "submit" }
-                  );
-
-                  const el = document.getElementById("recaptchaToken");
-                  if (el) el.value = token;
-
-              } catch (err) {
-                  console.error("reCAPTCHA error:", err);
-                  const status = document.getElementById("status");
-                  status.textContent = "reCAPTCHA failed. Please refresh the page.";
-                  status.classList.add("error");
-              }
-          }
-
-          grecaptcha.ready(() => {
-              refreshRecaptchaToken();
-              setInterval(refreshRecaptchaToken, 120000);
-          });
-
-      });
-  </script>
 
   <style>
     body {
@@ -140,13 +111,13 @@
     <form id="createAccountForm">
       <input type="hidden" id="recaptchaToken">
 
-      <label for="email">Email</label>
+      <label>Email</label>
       <input type="email" id="email" placeholder="Enter email" required />
 
-      <label for="password">Password</label>
+      <label>Password</label>
       <input type="password" id="password" placeholder="Enter password" required minlength="6" />
 
-      <label for="confirmPassword">Confirm Password</label>
+      <label>Confirm Password</label>
       <input type="password" id="confirmPassword" placeholder="Confirm password" required minlength="6" />
 
       <div id="refInfo" class="message" style="font-weight:bold; color:#ffd700;"></div>
@@ -179,17 +150,12 @@
       return "SW" + Date.now().toString(36).toUpperCase();
     }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusEl.textContent = "";
-      statusEl.className = "message";
-
+    async function completeSignup(token) {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
-      const recaptchaToken = document.getElementById("recaptchaToken").value;
 
-      if (!recaptchaToken) {
+      if (!token) {
         statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
         statusEl.classList.add("error");
         return;
@@ -209,16 +175,12 @@
           .maybeSingle();
 
         if (existingUser) {
-          if (existingUser.indicator === 1) {
-            statusEl.textContent = "Account created. Please check your email to confirm.";
-            statusEl.classList.add("error");
-            return;
-          }
-          if (existingUser.indicator === 2) {
-            statusEl.textContent = "User already exists.";
-            statusEl.classList.add("error");
-            return;
-          }
+          statusEl.textContent =
+            existingUser.indicator === 2
+              ? "User already exists."
+              : "Account created. Please check your email to confirm.";
+          statusEl.classList.add("error");
+          return;
         }
 
         const { data, error } = await client.auth.signUp({
@@ -242,25 +204,22 @@
           return;
         }
 
-        const uid = user.id;
         const referralCode = generateReferralCode();
 
-        const { error: insertError } = await client
-          .from("UsersSQL")
-          .insert({
-            uid: uid,
-            email: email,
-            indicator: 1,
-            referralcode: referralCode,
-            referred_by: ref,
-            teammembers: 0,
-            teamtoken: 0,
-            teamtokenpurchased: 0,
-            teamtokenavailabe: 0,
-            maxtoken: 10,
-            totp_secret: null,
-            totp_enabled: false
-          });
+        await client.from("UsersSQL").insert({
+          uid: user.id,
+          email: email,
+          indicator: 1,
+          referralcode: referralCode,
+          referred_by: ref,
+          teammembers: 0,
+          teamtoken: 0,
+          teamtokenpurchased: 0,
+          teamtokenavailabe: 0,
+          maxtoken: 10,
+          totp_secret: null,
+          totp_enabled: false
+        });
 
         statusEl.textContent = "Account created. Please check your email to confirm.";
         statusEl.classList.add("success");
@@ -270,6 +229,25 @@
         statusEl.textContent = "Unexpected error: " + err.message;
         statusEl.classList.add("error");
       }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      statusEl.textContent = "Validating reCAPTCHA...";
+      statusEl.className = "message";
+
+      grecaptcha.ready(() => {
+        grecaptcha.execute(
+          "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+          { action: "submit" }
+        ).then(token => {
+          document.getElementById("recaptchaToken").value = token;
+          completeSignup(token);
+        }).catch(err => {
+          statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
+          statusEl.classList.add("error");
+        });
+      });
     });
   </script>
 </body>
