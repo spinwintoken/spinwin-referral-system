@@ -53,7 +53,7 @@
 
     function decodeJWT(token) {
       try {
-        const payload = token.split(".")[1];
+        const payload = token.split('.')[1];
         return JSON.parse(atob(payload));
       } catch (e) {
         console.error("JWT decode error:", e);
@@ -62,89 +62,81 @@
     }
 
     async function finalizeAccount() {
-      try {
-        const access_token = parseFragment();
+      const access_token = parseFragment();
 
-        if (!access_token) {
-          statusEl.innerHTML = `
-            Your email is confirmed.<br><br>
-            <span class="success">Please sign in to continue.</span><br><br>
-            <a href="signin.html">Go to Sign In</a>
-          `;
-          return;
-        }
-
-        const decoded = decodeJWT(access_token);
-        const uid = decoded?.sub;
-
-        if (!uid) {
-          statusEl.textContent =
-            "Unable to verify your account. Please sign in.";
-          statusEl.classList.add("error");
-          return;
-        }
-
-        console.log("UID from JWT:", uid);
-
-        // Load user row
-        const { data: userRow, error: selectError } = await client
-          .from("UsersSQL")
-          .select("*")
-          .eq("uid", uid)
-          .single();
-
-        console.log("SELECT userRow:", userRow);
-        console.log("SELECT error:", selectError);
-
-        if (selectError) {
-          statusEl.textContent = "Database error loading your account.";
-          statusEl.classList.add("error");
-          return;
-        }
-
-        const referrer = userRow?.referred_by;
-
-        // Update indicator = 2
-        const { data: updateData, error: updateError } = await client
-          .from("UsersSQL")
-          .update({ indicator: 2 })
-          .eq("uid", uid);
-
-        console.log("UPDATE data:", updateData);
-        console.log("UPDATE error:", updateError);
-
-        if (updateError) {
-          statusEl.textContent =
-            "Error updating your account. Check console.";
-          statusEl.classList.add("error");
-          return;
-        }
-
-        // Increment teammembers
-        if (referrer && referrer !== "SPINROOT") {
-          const { data: rpcData, error: rpcError } = await client.rpc(
-            "increment_teammembers",
-            { ref_code: referrer }
-          );
-
-          console.log("RPC data:", rpcData);
-          console.log("RPC error:", rpcError);
-
-          if (rpcError) {
-            statusEl.textContent =
-              "Error updating referral team. Check console.";
-            statusEl.classList.add("error");
-            return;
-          }
-        }
-
-        statusEl.textContent = "Your account is fully activated!";
-        statusEl.classList.add("success");
-      } catch (err) {
-        console.error("Unexpected JS error:", err);
-        statusEl.textContent = "Unexpected error. Check console.";
-        statusEl.classList.add("error");
+      if (!access_token) {
+        statusEl.innerHTML = `
+          Your email is confirmed.<br><br>
+          <span class="success">Please sign in to continue.</span><br><br>
+          <a href="signin.html">Go to Sign In</a>
+        `;
+        return;
       }
+
+      const decoded = decodeJWT(access_token);
+      const uid = decoded?.sub;
+
+      if (!uid) {
+        statusEl.textContent = "Unable to verify your account. Please sign in.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      console.log("UID:", uid);
+
+      // 1️⃣ Load user row
+      const { data: userRow, error: selectError } = await client
+        .from("UsersSQL")
+        .select("*")
+        .eq("uid", uid)
+        .single();
+
+      console.log("SELECT userRow:", userRow);
+      console.log("SELECT error:", selectError);
+
+      if (selectError) {
+        statusEl.textContent = "Database error loading your account.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      const referrer = userRow?.referred_by;
+
+      // 2️⃣ Update indicator = 2
+      const { data: updateData, error: updateError } = await client
+        .from("UsersSQL")
+        .update({ indicator: 2 })
+        .eq("uid", uid);
+
+      console.log("UPDATE data:", updateData);
+      console.log("UPDATE error:", updateError);
+
+      if (updateError) {
+        statusEl.textContent = "Error updating your account. Check console.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 3️⃣ Increment teammembers
+      if (referrer && referrer !== "SPINROOT") {
+        const { data: rpcData, error: rpcError } = await client.rpc(
+          "increment_teammembers",
+          { ref_code: referrer }
+        );
+
+        console.log("RPC data:", rpcData);
+        console.log("RPC error:", rpcError);
+
+        if (rpcError) {
+          statusEl.textContent = "Error updating referral team. Check console.";
+          statusEl.classList.add("error");
+          return;
+        }
+      }
+
+      // 4️⃣ Success
+      statusEl.textContent = "Your account is fully activated!";
+      statusEl.classList.add("success");
     }
 
     finalizeAccount();
