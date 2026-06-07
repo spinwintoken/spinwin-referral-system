@@ -44,13 +44,11 @@
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
     const statusEl = document.getElementById("status");
 
-    // ⭐ Extract tokens from URL fragment
+    // ⭐ Extract access_token from URL
     function parseFragment() {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
-      return {
-        access_token: params.get("access_token")
-      };
+      return params.get("access_token");
     }
 
     // ⭐ Decode JWT to extract UID
@@ -65,7 +63,7 @@
 
     async function finalizeAccount() {
       try {
-        const { access_token } = parseFragment();
+        const access_token = parseFragment();
 
         if (!access_token) {
           statusEl.innerHTML = `
