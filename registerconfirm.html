@@ -44,20 +44,30 @@
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
     const statusEl = document.getElementById("status");
 
+    // ⭐ Extract tokens from URL fragment
     function parseFragment() {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       return {
-        access_token: params.get("access_token"),
-        refresh_token: params.get("refresh_token")
+        access_token: params.get("access_token")
       };
+    }
+
+    // ⭐ Decode JWT to extract UID
+    function decodeJWT(token) {
+      try {
+        const payload = token.split('.')[1];
+        return JSON.parse(atob(payload));
+      } catch (e) {
+        return null;
+      }
     }
 
     async function finalizeAccount() {
       try {
-        const tokens = parseFragment();
+        const { access_token } = parseFragment();
 
-        if (!tokens.access_token) {
+        if (!access_token) {
           statusEl.innerHTML = `
             Your email is confirmed.<br><br>
             <span class="success">Please sign in to continue.</span><br><br>
@@ -66,29 +76,22 @@
           return;
         }
 
-        // ⭐ Use access_token directly to get the user
-        const { data: userData, error: userErr } = await client.auth.getUser(tokens.access_token);
+        // ⭐ Decode token to get UID
+        const decoded = decodeJWT(access_token);
+        const uid = decoded?.sub;
 
-        if (userErr || !userData?.user) {
-          statusEl.textContent = "Unable to load confirmed user. Please try signing in.";
+        if (!uid) {
+          statusEl.textContent = "Unable to verify your account. Please sign in.";
           statusEl.classList.add("error");
           return;
         }
 
-        const uid = userData.user.id;
-
-        // ⭐ Load referral info
-        const { data: userRow, error: rowErr } = await client
+        // ⭐ Load referral info from UsersSQL
+        const { data: userRow } = await client
           .from("UsersSQL")
           .select("referred_by")
           .eq("uid", uid)
           .single();
-
-        if (rowErr) {
-          statusEl.textContent = "Error loading your account.";
-          statusEl.classList.add("error");
-          return;
-        }
 
         const referrer = userRow?.referred_by;
 
