@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Email Confirmed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      padding: 40px;
+    }
+    .box {
+      max-width: 420px;
+      margin: auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      text-align: center;
+    }
+    .success { color: #00ff88; font-weight: bold; }
+    .error { color: #ff4d4d; font-weight: bold; }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Email Confirmed</h1>
+    <div id="msg">Finalizing your account...</div>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    const msg = document.getElementById("msg");
+
+    function getToken() {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      return params.get("access_token");
+    }
+
+    function decodeJWT(token) {
+      try {
+        const payload = token.split(".")[1];
+        return JSON.parse(atob(payload));
+      } catch (e) {
+        console.error("JWT decode error:", e);
+        return null;
+      }
+    }
+
+    async function run() {
+      const token = getToken();
+      if (!token) {
+        msg.innerHTML = "<span class='error'>Missing token. Sign in again.</span>";
+        return;
+      }
+
+      const decoded = decodeJWT(token);
+      const uid = decoded?.sub;
+
+      if (!uid) {
+        msg.innerHTML = "<span class='error'>Invalid token. Sign in again.</span>";
+        return;
+      }
+
+      console.log("UID:", uid);
+
+      // 1️⃣ READ USER ROW
+      const { data: user, error: readErr } = await supabase
+        .from("UsersSQL")
+        .select("*")
+        .eq("uid", uid)
+        .single();
+
+      console.log("READ:", user, readErr);
+
+      if (readErr) {
+        msg.innerHTML = "<span class='error'>Cannot read user row. Check console.</span>";
+        return;
+      }
+
+      const referrer = user.referred_by;
+
+      // 2️⃣ UPDATE indicator = 2
+      const { error: updateErr } = await supabase
+        .from("UsersSQL")
+        .update({ indicator: 2 })
+        .eq("uid", uid);
+
+      console.log("UPDATE error:", updateErr);
+
+      if (updateErr) {
+        msg.innerHTML = "<span class='error'>Cannot update indicator. Check console.</span>";
+        return;
+      }
+
+      // 3️⃣ INCREMENT TEAMMEMBERS
+      if (referrer && referrer !== "SPINROOT") {
+        const { error: rpcErr } = await supabase.rpc(
+          "increment_teammembers",
+          { ref_code: referrer }
+        );
+
+        console.log("RPC error:", rpcErr);
+
+        if (rpcErr) {
+          msg.innerHTML = "<span class='error'>Cannot update teammembers. Check console.</span>";
+          return;
+        }
+      }
+
+      // 4️⃣ SUCCESS
+      msg.innerHTML = "<span class='success'>Your account is fully activated!</span>";
+    }
+
+    run();
+  </script>
+</body>
+</html>
