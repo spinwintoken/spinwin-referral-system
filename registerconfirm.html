@@ -74,15 +74,28 @@
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
     const statusEl = document.getElementById("status");
 
+    // ⭐ Wait for Supabase to restore the confirmed session
+    async function waitForSession() {
+      for (let i = 0; i < 12; i++) { // up to ~6 seconds
+        const { data } = await client.auth.getSession();
+        if (data.session) return data.session;
+        await new Promise(r => setTimeout(r, 500));
+      }
+      return null;
+    }
+
     async function finalizeAccount() {
       try {
-        // 1️⃣ Wait for Supabase to hydrate the confirmed session
-        const { data: sessionData } = await client.auth.getSession();
-        if (!sessionData.session) {
-          statusEl.textContent = "Waiting for confirmation session...";
-          await new Promise(r => setTimeout(r, 1500));
+        // 1️⃣ Wait for session hydration
+        const session = await waitForSession();
+
+        if (!session) {
+          statusEl.textContent = "Session not ready. Please sign in.";
+          statusEl.classList.add("error");
+          return;
         }
 
+        // 2️⃣ Get confirmed user
         const { data: userData } = await client.auth.getUser();
         const user = userData?.user;
 
@@ -94,7 +107,7 @@
 
         const uid = user.id;
 
-        // 2️⃣ Get the user's referral info
+        // 3️⃣ Load referral info
         const { data: userRow, error: userErr } = await client
           .from("UsersSQL")
           .select("referred_by")
@@ -109,20 +122,20 @@
 
         const referrer = userRow?.referred_by;
 
-        // 3️⃣ Update indicator = 2
+        // 4️⃣ Update indicator = 2
         await client
           .from("UsersSQL")
           .update({ indicator: 2 })
           .eq("uid", uid);
 
-        // 4️⃣ Increment referrer teammembers +1
+        // 5️⃣ Increment referrer teammembers +1
         if (referrer && referrer !== "SPINROOT") {
           await client.rpc("increment_teammembers", {
             ref_code: referrer
           });
         }
 
-        // 5️⃣ Done
+        // 6️⃣ Done
         statusEl.textContent = "Your account is fully activated!";
         statusEl.classList.add("success");
 
@@ -136,3 +149,4 @@
   </script>
 </body>
 </html>
+
