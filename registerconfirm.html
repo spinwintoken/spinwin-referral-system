@@ -44,7 +44,6 @@
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
     const statusEl = document.getElementById("status");
 
-    // ⭐ Extract tokens from URL fragment
     function parseFragment() {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
@@ -54,22 +53,11 @@
       };
     }
 
-    // ⭐ Wait for Supabase to hydrate session after setSession()
-    async function waitForUser() {
-      for (let i = 0; i < 10; i++) {
-        const { data } = await client.auth.getUser();
-        if (data?.user) return data.user;
-        await new Promise(r => setTimeout(r, 300));
-      }
-      return null;
-    }
-
     async function finalizeAccount() {
       try {
         const tokens = parseFragment();
 
-        // If no tokens, link was already used → ask user to sign in
-        if (!tokens.access_token || !tokens.refresh_token) {
+        if (!tokens.access_token) {
           statusEl.innerHTML = `
             Your email is confirmed.<br><br>
             <span class="success">Please sign in to continue.</span><br><br>
@@ -78,35 +66,29 @@
           return;
         }
 
-        // ⭐ Set Supabase session manually
-        const { error: sessionErr } = await client.auth.setSession({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token
-        });
+        // ⭐ Use access_token directly to get the user
+        const { data: userData, error: userErr } = await client.auth.getUser(tokens.access_token);
 
-        if (sessionErr) {
-          statusEl.textContent = "Session error. Please sign in.";
+        if (userErr || !userData?.user) {
+          statusEl.textContent = "Unable to load confirmed user. Please try signing in.";
           statusEl.classList.add("error");
           return;
         }
 
-        // ⭐ Wait for user to load
-        const user = await waitForUser();
-
-        if (!user) {
-          statusEl.textContent = "Please sign in to continue.";
-          statusEl.classList.add("error");
-          return;
-        }
-
-        const uid = user.id;
+        const uid = userData.user.id;
 
         // ⭐ Load referral info
-        const { data: userRow } = await client
+        const { data: userRow, error: rowErr } = await client
           .from("UsersSQL")
           .select("referred_by")
           .eq("uid", uid)
           .single();
+
+        if (rowErr) {
+          statusEl.textContent = "Error loading your account.";
+          statusEl.classList.add("error");
+          return;
+        }
 
         const referrer = userRow?.referred_by;
 
