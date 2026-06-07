@@ -39,7 +39,8 @@
 
   <script>
     const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
+    const supabaseKey =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
 
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
     const statusEl = document.getElementById("status");
@@ -52,9 +53,10 @@
 
     function decodeJWT(token) {
       try {
-        const payload = token.split('.')[1];
+        const payload = token.split(".")[1];
         return JSON.parse(atob(payload));
       } catch (e) {
+        console.error("JWT decode error:", e);
         return null;
       }
     }
@@ -76,35 +78,71 @@
         const uid = decoded?.sub;
 
         if (!uid) {
-          statusEl.textContent = "Unable to verify your account. Please sign in.";
+          statusEl.textContent =
+            "Unable to verify your account. Please sign in.";
           statusEl.classList.add("error");
           return;
         }
 
-        const { data: userRow } = await client
+        console.log("UID from JWT:", uid);
+
+        // Load user row
+        const { data: userRow, error: selectError } = await client
           .from("UsersSQL")
-          .select("referred_by")
+          .select("*")
           .eq("uid", uid)
           .single();
 
+        console.log("SELECT userRow:", userRow);
+        console.log("SELECT error:", selectError);
+
+        if (selectError) {
+          statusEl.textContent = "Database error loading your account.";
+          statusEl.classList.add("error");
+          return;
+        }
+
         const referrer = userRow?.referred_by;
 
-        await client
+        // Update indicator = 2
+        const { data: updateData, error: updateError } = await client
           .from("UsersSQL")
           .update({ indicator: 2 })
           .eq("uid", uid);
 
+        console.log("UPDATE data:", updateData);
+        console.log("UPDATE error:", updateError);
+
+        if (updateError) {
+          statusEl.textContent =
+            "Error updating your account. Check console.";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        // Increment teammembers
         if (referrer && referrer !== "SPINROOT") {
-          await client.rpc("increment_teammembers", {
-            ref_code: referrer
-          });
+          const { data: rpcData, error: rpcError } = await client.rpc(
+            "increment_teammembers",
+            { ref_code: referrer }
+          );
+
+          console.log("RPC data:", rpcData);
+          console.log("RPC error:", rpcError);
+
+          if (rpcError) {
+            statusEl.textContent =
+              "Error updating referral team. Check console.";
+            statusEl.classList.add("error");
+            return;
+          }
         }
 
         statusEl.textContent = "Your account is fully activated!";
         statusEl.classList.add("success");
-
       } catch (err) {
-        statusEl.textContent = "Unexpected error: " + err.message;
+        console.error("Unexpected JS error:", err);
+        statusEl.textContent = "Unexpected error. Check console.";
         statusEl.classList.add("error");
       }
     }
@@ -113,6 +151,7 @@
   </script>
 </body>
 </html>
+
 
 
 
