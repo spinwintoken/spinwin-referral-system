@@ -44,14 +44,12 @@
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
     const statusEl = document.getElementById("status");
 
-    // ⭐ Extract access_token from URL
     function parseFragment() {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       return params.get("access_token");
     }
 
-    // ⭐ Decode JWT to extract UID
     function decodeJWT(token) {
       try {
         const payload = token.split('.')[1];
@@ -74,7 +72,6 @@
           return;
         }
 
-        // ⭐ Decode token to get UID
         const decoded = decodeJWT(access_token);
         const uid = decoded?.sub;
 
@@ -84,7 +81,6 @@
           return;
         }
 
-        // ⭐ Load referral info from UsersSQL
         const { data: userRow } = await client
           .from("UsersSQL")
           .select("referred_by")
@@ -93,13 +89,11 @@
 
         const referrer = userRow?.referred_by;
 
-        // ⭐ Update indicator = 2
         await client
           .from("UsersSQL")
           .update({ indicator: 2 })
           .eq("uid", uid);
 
-        // ⭐ Increment referrer teammembers
         if (referrer && referrer !== "SPINROOT") {
           await client.rpc("increment_teammembers", {
             ref_code: referrer
@@ -119,6 +113,7 @@
   </script>
 </body>
 </html>
+
 
 
 
