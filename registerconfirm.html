@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Email Confirmed - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #ffd700;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      text-align: center;
+    }
+
+    h1 {
+      color: #ffd700;
+      margin-bottom: 20px;
+    }
+
+    .message {
+      margin-top: 15px;
+      font-size: 1rem;
+      color: #ffd700;
+    }
+
+    .success {
+      color: #00ff88;
+      font-weight: bold;
+    }
+
+    .error {
+      color: #ff4d4d;
+      font-weight: bold;
+    }
+
+    a {
+      color: #00aaff;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Email Confirmed</h1>
+    <div id="status" class="message">Finalizing your account...</div>
+  </div>
+
+  <script>
+    const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
+
+    const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const statusEl = document.getElementById("status");
+
+    async function finalizeAccount() {
+      try {
+        // 1️⃣ Wait for Supabase to hydrate the confirmed session
+        const { data: sessionData } = await client.auth.getSession();
+        if (!sessionData.session) {
+          statusEl.textContent = "Waiting for confirmation session...";
+          await new Promise(r => setTimeout(r, 1500));
+        }
+
+        const { data: userData } = await client.auth.getUser();
+        const user = userData?.user;
+
+        if (!user) {
+          statusEl.textContent = "Unable to load your account.";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        const uid = user.id;
+
+        // 2️⃣ Get the user's referral info
+        const { data: userRow, error: userErr } = await client
+          .from("UsersSQL")
+          .select("referred_by")
+          .eq("uid", uid)
+          .single();
+
+        if (userErr) {
+          statusEl.textContent = "Error loading your account.";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        const referrer = userRow?.referred_by;
+
+        // 3️⃣ Update indicator = 2
+        await client
+          .from("UsersSQL")
+          .update({ indicator: 2 })
+          .eq("uid", uid);
+
+        // 4️⃣ Increment referrer teammembers +1
+        if (referrer && referrer !== "SPINROOT") {
+          await client.rpc("increment_teammembers", {
+            ref_code: referrer
+          });
+        }
+
+        // 5️⃣ Done
+        statusEl.textContent = "Your account is fully activated!";
+        statusEl.classList.add("success");
+
+      } catch (err) {
+        statusEl.textContent = "Unexpected error: " + err.message;
+        statusEl.classList.add("error");
+      }
+    }
+
+    finalizeAccount();
+  </script>
+</body>
+</html>
