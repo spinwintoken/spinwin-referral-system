@@ -104,7 +104,7 @@
       // ⭐ DISPLAY referred_by
       refDisplay.textContent = "Referred By: " + referrerCode;
 
-      // 4️⃣ Update NEW USER indicator = 2  (DO NOT CHANGE)
+      // 4️⃣ Update NEW USER indicator = 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
@@ -125,24 +125,24 @@
           "Matched Referred By in UsersSQL: NONE FOUND";
       }
 
-      // ⭐ FIND MAX TEAMMEMBERS (numeric, from existing rows)
-      let maxTeam = 0;
-      if (siblings && siblings.length > 0) {
-        const nums = siblings.map(r => {
-          const v = Number(r.teammembers);
-          return Number.isNaN(v) ? 0 : v;
-        });
-        maxTeam = Math.max(...nums);
-      }
+      // ⭐ FILTER VALID TEAMMEMBERS (0–4 ONLY)
+      const nums = siblings
+        .map(r => Number(r.teammembers))
+        .filter(v => !Number.isNaN(v) && v >= 0 && v <= 4);
 
-      // ⭐ DISPLAY EXISTING MAX TEAMMEMBER VALUE
-      maxTeamDisplay.textContent = "Existing Max Team Member Value: " + maxTeam;
+      // ⭐ GET MAX TEAMMEMBER VALUE
+      let maxTeam = nums.length > 0 ? Math.max(...nums) : 0;
 
-      // ⭐ NEW TEAM MEMBER VALUE FOR THIS USER
+      // ⭐ DISPLAY MAX TEAMMEMBER VALUE
+      maxTeamDisplay.textContent =
+        "Max Team Member Value (0–4): " + maxTeam;
+
+      // ⭐ NEW TEAM MEMBER VALUE = max + 1
       const newTeamCount = maxTeam + 1;
 
       // ⭐ DISPLAY NEW TEAM MEMBER VALUE
-      newTeamDisplay.textContent = "This User Team Member Value: " + newTeamCount;
+      newTeamDisplay.textContent =
+        "This User Team Member Value: " + newTeamCount;
 
       // 6️⃣ Update ONLY teammembers
       await client
@@ -158,6 +158,7 @@
   </script>
 </body>
 </html>
+
 
 
 
