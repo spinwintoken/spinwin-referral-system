@@ -116,45 +116,46 @@
         .update({ indicator: 2 })
         .eq("email", email);
 
-      // 5️⃣ TEAMMEMBER LOGIC
+      // 5️⃣ TEAMMEMBER LOGIC: get all rows for this referred_by
       const { data: siblings } = await client
         .from("UsersSQL")
-        .select("email, teammembers, referred_by")
+        .select("teammembers, referred_by")
         .eq("referred_by", referrerCode);
 
       // ⭐ DISPLAY matched referred_by
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ GET ONLY REAL NUMBERS (ignore null, ignore empty)
+      // ⭐ GET ONLY REAL NUMBERS (ignore null/empty)
       const nums = (siblings || [])
         .map(r => r.teammembers)
         .filter(v => v !== null && v !== "" && !Number.isNaN(Number(v)))
         .map(v => Number(v));
 
-      // ⭐ TRUE MAX
+      // ⭐ TRUE MAX FROM DB (smallest int could be 0)
       let maxTeam = nums.length > 0 ? Math.max(...nums) : 0;
 
-      // ⭐ DISPLAY MAX
+      // ⭐ DISPLAY MAX TEAMMEMBER VALUE
       maxTeamDisplay.textContent =
         "Matched Referred By Max Team Member Value: " + maxTeam;
 
       // ⭐ NEW TEAM MEMBER VALUE = max + 1
       const newTeamCount = maxTeam + 1;
 
-      // ⭐ DISPLAY NEW VALUE
+      // ⭐ DISPLAY NEW TEAM MEMBER VALUE
       newTeamDisplay.textContent =
         "Matched Referred By New Team Member Value (max+1): " + newTeamCount;
 
-      // ⭐ TOTAL REFERRALS
+      // ⭐ TOTAL REFERRALS FOR THIS REFERRED_BY = HIGHEST teammembers VALUE
       totalReferrals.textContent =
-        "Total Referrals for " + referrerCode + ": " + siblings.length;
+        "Total Referrals for " + referrerCode + " (highest teammembers): " + maxTeam;
 
-      // ⭐ REFERRAL LIST (emails)
-      const list = siblings.map(r => r.email).join(", ");
-      referralList.textContent = "Referral List: " + list;
+      // ⭐ REFERRAL LIST = list of teammembers values for this referred_by
+      const list = nums.length > 0 ? nums.join(", ") : "none";
+      referralList.textContent =
+        "Referred By teammembers list for " + referrerCode + ": " + list;
 
-      // 6️⃣ Update DB
+      // 6️⃣ Update DB for this user
       await client
         .from("UsersSQL")
         .update({ teammembers: newTeamCount })
