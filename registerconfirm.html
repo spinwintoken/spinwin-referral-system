@@ -110,41 +110,37 @@
         .update({ indicator: 2 })
         .eq("email", email);
 
-      // 5️⃣ TEAMMEMBER LOGIC: read all teammembers for this referred_by
+      // 5️⃣ TEAMMEMBER LOGIC
       const { data: siblings } = await client
         .from("UsersSQL")
         .select("teammembers, referred_by")
         .eq("referred_by", referrerCode);
 
-      // ⭐ DISPLAY matched referred_by from UsersSQL table
-      if (siblings && siblings.length > 0) {
-        matchedRefDisplay.textContent =
-          "Matched Referred By in UsersSQL: " + siblings[0].referred_by;
-      } else {
-        matchedRefDisplay.textContent =
-          "Matched Referred By in UsersSQL: NONE FOUND";
-      }
+      // ⭐ DISPLAY matched referred_by
+      matchedRefDisplay.textContent =
+        "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ COLLECT NUMERIC teammembers (no null→0 hack, just real numbers)
+      // ⭐ FIXED: GET ONLY REAL NUMBERS (ignore null)
       const nums = (siblings || [])
-        .map(r => Number(r.teammembers))
-        .filter(v => !Number.isNaN(v) && v >= 0); // allow 0,1,2,3,4,5,...
+        .map(r => r.teammembers)
+        .filter(v => v !== null && v !== "" && !Number.isNaN(Number(v)))
+        .map(v => Number(v));
 
-      // ⭐ GET TRUE MAX FOR THIS referred_by
+      // ⭐ TRUE MAX
       let maxTeam = nums.length > 0 ? Math.max(...nums) : 0;
 
-      // ⭐ DISPLAY MAX TEAMMEMBER VALUE
+      // ⭐ DISPLAY MAX
       maxTeamDisplay.textContent =
-        "Max Team Member Value for " + referrerCode + ": " + maxTeam;
+        "Matched Referred By Max Team Member Value: " + maxTeam;
 
       // ⭐ NEW TEAM MEMBER VALUE = max + 1
       const newTeamCount = maxTeam + 1;
 
-      // ⭐ DISPLAY NEW TEAM MEMBER VALUE
+      // ⭐ DISPLAY NEW VALUE
       newTeamDisplay.textContent =
-        "This User Team Member Value (max+1): " + newTeamCount;
+        "Matched Referred By New Team Member Value (max+1): " + newTeamCount;
 
-      // 6️⃣ Update ONLY teammembers for this user
+      // 6️⃣ Update DB
       await client
         .from("UsersSQL")
         .update({ teammembers: newTeamCount })
@@ -158,6 +154,7 @@
   </script>
 </body>
 </html>
+
 
 
 
