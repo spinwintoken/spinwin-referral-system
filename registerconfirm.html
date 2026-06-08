@@ -106,39 +106,36 @@
         .update({ indicator: 2 })
         .eq("email", email);
 
-      // 5️⃣ Get highest teammembers for this referred_by directly from DB
-      const { data: maxRow, error: maxErr } = await client
+      // 5️⃣ Get highest teammembers for this referred_by using SQL max()
+      const { data: maxAgg, error: maxErr } = await client
         .from("UsersSQL")
-        .select("teammembers")
+        .select("max_teammembers=max(teammembers)")
         .eq("referred_by", referrerCode)
-        .not("teammembers", "is", null)
-        .order("teammembers", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .single();
 
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      let maxTeam = 0;
       if (maxErr) {
         msg.textContent = "Error reading teammembers.";
         return;
       }
 
-      if (maxRow && maxRow.teammembers !== null && maxRow.teammembers !== "") {
-        maxTeam = Number(maxRow.teammembers);
-        if (Number.isNaN(maxTeam)) maxTeam = 0;
-      }
+      // max_teammembers is exactly what DB says is highest
+      let maxTeam = maxAgg && maxAgg.max_teammembers !== null
+        ? Number(maxAgg.max_teammembers)
+        : 0;
 
       maxTeamDisplay.textContent =
         "Matched Referred By teammembers (highest from DB): " + maxTeam;
 
+      // 6️⃣ New teammembers value = highest + 1
       const newTeamCount = maxTeam + 1;
 
       newTeamDisplay.textContent =
         "Matched Referred By New teammembers Value (max+1): " + newTeamCount;
 
-      // 6️⃣ Update this user's teammembers with max+1
+      // 7️⃣ Update this user's teammembers
       await client
         .from("UsersSQL")
         .update({ teammembers: newTeamCount })
@@ -151,6 +148,7 @@
   </script>
 </body>
 </html>
+
 
 
 
