@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SpinWinToken</title>
+</head>
+<body>
+<script>
+  const hash = window.location.hash;
+
+  // If Supabase sent an access token after email confirmation
+  if (hash.includes("access_token")) {
+    // FORCE a full page load so Vercel loads the REAL registerconfirm.html
+    window.location.replace("registerconfirm.html" + hash);
+  } 
+  else {
+    // Normal visit → go to create account
+    window.location.replace("createaccount.html" + window.location.search);
+  }
+</script>
+</body>
+</html>
