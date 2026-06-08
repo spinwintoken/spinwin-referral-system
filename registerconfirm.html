@@ -35,7 +35,8 @@
     #emailDisplay,
     #refDisplay,
     #matchedRefDisplay,
-    #maxTeamDisplay {
+    #maxTeamDisplay,
+    #newTeamDisplay {
       margin-top: 12px;
       color: #00ffea;
       font-size: 14px;
@@ -52,6 +53,7 @@
     <p id="refDisplay"></p>
     <p id="matchedRefDisplay"></p>
     <p id="maxTeamDisplay"></p>
+    <p id="newTeamDisplay"></p>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -68,6 +70,7 @@
       const refDisplay = document.getElementById("refDisplay");
       const matchedRefDisplay = document.getElementById("matchedRefDisplay");
       const maxTeamDisplay = document.getElementById("maxTeamDisplay");
+      const newTeamDisplay = document.getElementById("newTeamDisplay");
 
       // 1️⃣ Hydrate session
       const { data: { session } } = await client.auth.getSession();
@@ -85,13 +88,13 @@
       history.replaceState(null, "", "registerconfirm.html");
 
       // 3️⃣ Load NEW USER row
-      const { data: userRow } = await client
+      const { data: userRow, error: userErr } = await client
         .from("UsersSQL")
         .select("*")
         .eq("email", email)
         .single();
 
-      if (!userRow) {
+      if (userErr || !userRow) {
         msg.textContent = "User record not found.";
         return;
       }
@@ -101,29 +104,55 @@
       // ⭐ DISPLAY referred_by
       refDisplay.textContent = "Referred By: " + referrerCode;
 
-      // 4️⃣ TEAMMEMBER LOGIC
-      const { data: siblings } = await client
+      // 4️⃣ Update NEW USER indicator = 2  (this is the part you need preserved)
+      await client
         .from("UsersSQL")
-        .select("teammembers")
+        .update({ indicator: 2 })
+        .eq("email", email);
+
+      // 5️⃣ TEAMMEMBER LOGIC: get all rows for this referred_by
+      const { data: siblings, error: sibErr } = await client
+        .from("UsersSQL")
+        .select("teammembers, referred_by")
         .eq("referred_by", referrerCode);
+
+      if (sibErr) {
+        msg.textContent = "Error loading team data.";
+        return;
+      }
 
       // ⭐ DISPLAY matched referred_by
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ GET ONLY REAL NUMBERS (ignore null, ignore empty)
+      // ⭐ GET ONLY REAL NUMBERS (ignore null/empty)
       const nums = (siblings || [])
         .map(r => r.teammembers)
         .filter(v => v !== null && v !== "" && !Number.isNaN(Number(v)))
         .map(v => Number(v));
 
       // ⭐ TRUE HIGHEST teammembers VALUE FROM DB
-      let maxTeam = nums.length > 0 ? Math.max(...nums) : null;
+      // If there are no valid numbers yet, treat as "no teammembers set" and start from 0
+      const maxTeam = nums.length > 0 ? Math.max(...nums) : 0;
 
-      // ⭐ DISPLAY EXACT VALUE FROM DB
+      // ⭐ DISPLAY HIGHEST VALUE FROM DB
       maxTeamDisplay.textContent =
         "Matched Referred By teammembers (highest from DB): " + maxTeam;
 
+      // ⭐ NEW TEAM MEMBER VALUE = max + 1
+      const newTeamCount = maxTeam + 1;
+
+      // ⭐ DISPLAY NEW VALUE
+      newTeamDisplay.textContent =
+        "Matched Referred By New teammembers Value (max+1): " + newTeamCount;
+
+      // 6️⃣ Update this user's teammembers with max+1
+      await client
+        .from("UsersSQL")
+        .update({ teammembers: newTeamCount })
+        .eq("email", email);
+
+      // 7️⃣ Done
       msg.textContent = "Your email has been verified successfully!";
     }
 
