@@ -76,15 +76,15 @@
         return;
       }
 
-      const refCode = userRow.referred_by;
-
       // 4️⃣ ALWAYS set indicator = 2 (email confirmed)
       await client
         .from("usersql")
         .update({ indicator: 2 })
         .eq("email", email);
+      
+      const refCode = userRow.referred_by;
 
-      // 5️⃣ TEAMMEMBER LOGIC (independent of indicator)
+      // 5️⃣ TEAMMEMBER LOGIC  
       //    referred_by ALWAYS exists
       const { data: siblings, error: sibErr } = await client
         .from("usersql")
