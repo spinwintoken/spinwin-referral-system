@@ -72,7 +72,7 @@
       const maxTeamDisplay = document.getElementById("maxTeamDisplay");
       const newTeamDisplay = document.getElementById("newTeamDisplay");
 
-      // 1️⃣ Load session
+      // 1️⃣ Session
       const { data: { session } } = await client.auth.getSession();
       if (!session) {
         msg.textContent = "Unable to load your session. Please sign in.";
@@ -85,14 +85,14 @@
       // 2️⃣ Clean URL
       history.replaceState(null, "", "registerconfirm.html");
 
-      // 3️⃣ Load NEW USER row
-      const { data: userRow } = await client
+      // 3️⃣ Load user row
+      const { data: userRow, error: userErr } = await client
         .from("UsersSQL")
         .select("*")
         .eq("email", email)
         .single();
 
-      if (!userRow) {
+      if (userErr || !userRow) {
         msg.textContent = "User record not found.";
         return;
       }
@@ -100,40 +100,44 @@
       const referrerCode = userRow.referred_by;
       refDisplay.textContent = "Referred By: " + referrerCode;
 
-      // 4️⃣ Set indicator = 2
+      // 4️⃣ indicator = 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
         .eq("email", email);
 
-      // 5️⃣ Get highest teammembers for this referred_by
-      const { data: maxAgg } = await client
+      // 5️⃣ Highest teammembers for this referred_by
+      const { data: maxAgg, error: maxErr } = await client
         .from("UsersSQL")
         .select("max_teammembers=max(teammembers)")
         .eq("referred_by", referrerCode)
         .single();
 
+      if (maxErr) {
+        msg.textContent = "Error reading teammembers.";
+        return;
+      }
+
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ EXACT highest value from DB
-      let maxTeam = maxAgg?.max_teammembers;
-
-      // If no rows exist yet → start at 0
-      if (maxTeam === null) {
-        maxTeam = 0;
+      // Safely normalize maxTeam
+      let maxTeam = 0;
+      if (maxAgg && maxAgg.max_teammembers !== null) {
+        const n = Number(maxAgg.max_teammembers);
+        if (!Number.isNaN(n)) maxTeam = n;
       }
 
       maxTeamDisplay.textContent =
         "Highest teammembers for " + referrerCode + ": " + maxTeam;
 
-      // ⭐ NEW USER teammembers = highest + 1
+      // 6️⃣ New value = max + 1
       const newTeamCount = maxTeam + 1;
 
       newTeamDisplay.textContent =
         "New teammembers value (max+1): " + newTeamCount;
 
-      // 6️⃣ Update this user's teammembers
+      // 7️⃣ Update this user's teammembers
       await client
         .from("UsersSQL")
         .update({ teammembers: newTeamCount })
@@ -146,6 +150,7 @@
   </script>
 </body>
 </html>
+
 
 
 
