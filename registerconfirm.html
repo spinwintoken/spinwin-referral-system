@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account Confirmed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 60px;
+      margin: 0;
+    }
+    .box {
+      background: #111;
+      padding: 40px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 480px;
+      margin: auto;
+      border: 1px solid #ffd700;
+    }
+    h1 {
+      color: #ffd700;
+      margin-bottom: 16px;
+    }
+    p {
+      font-size: 16px;
+      color: #fff;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Account Confirmed</h1>
+    <p id="msg">Finalizing your account...</p>
+  </div>
+
+  <!-- Use supabase-js v2 UMD bundle -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    // 🔹 SAME PROJECT AS register.html
+    const supabaseUrl = "https://rjkhizksbbpnmjlvzgfm.supabase.co";
+    const supabaseKey = "sb_publishable_7go8JEEmnxjziiHVu8iTBQ_lUyqsGhK"; // same anon key you used in register page
+
+    const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function finalizeAccount() {
+      const msg = document.getElementById("msg");
+
+      // 1️⃣ Load session
+      const { data: { session }, error: sessionError } = await client.auth.getSession();
+      if (sessionError) {
+        msg.textContent = "Error loading session: " + sessionError.message;
+        return;
+      }
+      if (!session) {
+        msg.textContent = "Unable to load your session. Please sign in.";
+        return;
+      }
+
+      const email = session.user.email;
+
+      // 2️⃣ Clean URL (remove token params)
+      history.replaceState(null, "", "registerconfirm.html");
+
+      // 3️⃣ Load THIS USER row by email (matches register insert)
+      const { data: userRow, error: userErr } = await client
+        .from("usersql")          // 🔹 exact same table name
+        .select("*")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (userErr) {
+        msg.textContent = "Error loading user record: " + userErr.message;
+        return;
+      }
+      if (!userRow) {
+        msg.textContent = "User record not found.";
+        return;
+      }
+
+      const refCode = userRow.referred_by;
+
+      // 4️⃣ If no referral or SPINROOT → only update indicator
+      if (!refCode || refCode === "SPINROOT") {
+        const { error: updErr } = await client
+          .from("usersql")
+          .update({ indicator: 2 })
+          .eq("email", email);
+
+        if (updErr) {
+          msg.textContent = "Error finalizing account: " + updErr.message;
+          return;
+        }
+
+        msg.textContent = "Your email has been verified successfully!";
+        return;
+      }
+
+      // 5️⃣ Get all users with same referred_by
+      const { data: siblings, error: sibErr } = await client
+        .from("usersql")
+        .select("teammembers")
+        .eq("referred_by", refCode);
+
+      if (sibErr) {
+        msg.textContent = "Error loading team data: " + sibErr.message;
+        return;
+      }
+
+      // 6️⃣ Compute max teammembers
+      let maxTeam = 0;
+      if (siblings && siblings.length > 0) {
+        maxTeam = Math.max(...siblings.map(r => r.teammembers || 0));
+      }
+
+      const newTeamCount = maxTeam + 1;
+
+      // 7️⃣ Update THIS USER ONLY with computed teammembers + indicator
+      const { error: finalErr } = await client
+        .from("usersql")
+        .update({
+          teammembers: newTeamCount,
+          indicator: 2
+        })
+        .eq("email", email);
+
+      if (finalErr) {
+        msg.textContent = "Error updating teammembers: " + finalErr.message;
+        return;
+      }
+
+      // 8️⃣ Done
+      msg.textContent = "Your email has been verified successfully!";
+    }
+
+    finalizeAccount();
+  </script>
+</body>
+</html>
