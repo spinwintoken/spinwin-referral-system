@@ -35,10 +35,7 @@
     #emailDisplay,
     #refDisplay,
     #matchedRefDisplay,
-    #maxTeamDisplay,
-    #newTeamDisplay,
-    #totalReferrals,
-    #referralList {
+    #maxTeamDisplay {
       margin-top: 12px;
       color: #00ffea;
       font-size: 14px;
@@ -55,9 +52,6 @@
     <p id="refDisplay"></p>
     <p id="matchedRefDisplay"></p>
     <p id="maxTeamDisplay"></p>
-    <p id="newTeamDisplay"></p>
-    <p id="totalReferrals"></p>
-    <p id="referralList"></p>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -74,9 +68,6 @@
       const refDisplay = document.getElementById("refDisplay");
       const matchedRefDisplay = document.getElementById("matchedRefDisplay");
       const maxTeamDisplay = document.getElementById("maxTeamDisplay");
-      const newTeamDisplay = document.getElementById("newTeamDisplay");
-      const totalReferrals = document.getElementById("totalReferrals");
-      const referralList = document.getElementById("referralList");
 
       // 1️⃣ Hydrate session
       const { data: { session } } = await client.auth.getSession();
@@ -110,58 +101,29 @@
       // ⭐ DISPLAY referred_by
       refDisplay.textContent = "Referred By: " + referrerCode;
 
-      // 4️⃣ Update NEW USER indicator = 2
-      await client
-        .from("UsersSQL")
-        .update({ indicator: 2 })
-        .eq("email", email);
-
-      // 5️⃣ TEAMMEMBER LOGIC: get all rows for this referred_by
+      // 4️⃣ TEAMMEMBER LOGIC
       const { data: siblings } = await client
         .from("UsersSQL")
-        .select("teammembers, referred_by")
+        .select("teammembers")
         .eq("referred_by", referrerCode);
 
       // ⭐ DISPLAY matched referred_by
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ GET ONLY REAL NUMBERS (ignore null/empty)
+      // ⭐ GET ONLY REAL NUMBERS (ignore null, ignore empty)
       const nums = (siblings || [])
         .map(r => r.teammembers)
         .filter(v => v !== null && v !== "" && !Number.isNaN(Number(v)))
         .map(v => Number(v));
 
-      // ⭐ TRUE MAX FROM DB (smallest int could be 0)
-      let maxTeam = nums.length > 0 ? Math.max(...nums) : 0;
+      // ⭐ TRUE HIGHEST teammembers VALUE FROM DB
+      let maxTeam = nums.length > 0 ? Math.max(...nums) : null;
 
-      // ⭐ DISPLAY MAX TEAMMEMBER VALUE
+      // ⭐ DISPLAY EXACT VALUE FROM DB
       maxTeamDisplay.textContent =
-        "Matched Referred By Max Team Member Value: " + maxTeam;
+        "Matched Referred By teammembers (highest from DB): " + maxTeam;
 
-      // ⭐ NEW TEAM MEMBER VALUE = max + 1
-      const newTeamCount = maxTeam + 1;
-
-      // ⭐ DISPLAY NEW TEAM MEMBER VALUE
-      newTeamDisplay.textContent =
-        "Matched Referred By New Team Member Value (max+1): " + newTeamCount;
-
-      // ⭐ TOTAL REFERRALS FOR THIS REFERRED_BY = HIGHEST teammembers VALUE
-      totalReferrals.textContent =
-        "Total Referrals for " + referrerCode + " (highest teammembers): " + maxTeam;
-
-      // ⭐ REFERRAL LIST = list of teammembers values for this referred_by
-      const list = nums.length > 0 ? nums.join(", ") : "none";
-      referralList.textContent =
-        "Referred By teammembers list for " + referrerCode + ": " + list;
-
-      // 6️⃣ Update DB for this user
-      await client
-        .from("UsersSQL")
-        .update({ teammembers: newTeamCount })
-        .eq("email", email);
-
-      // 7️⃣ Done
       msg.textContent = "Your email has been verified successfully!";
     }
 
