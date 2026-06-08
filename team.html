@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+
+    <style>
+        body {
+            background: #0d0d0d;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 40px;
+        }
+
+        .box {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 420px;
+            margin: auto;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
+        h1 {
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .input-box {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .input-box label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 15px;
+            color: #ffd700;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #111;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: #ffd700;
+            color: #000;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover {
+            background: #e6c200;
+        }
+
+        #popup {
+            display:none;
+            background:#330000;
+            color:#FF4D4D;
+            padding:12px 20px;
+            margin-top:15px;
+            border-radius:6px;
+            font-size:16px;
+            border: 2px solid #FF4D4D;
+        }
+
+        #emailMessage {
+            color: #00FF88;
+            font-size: 22px;
+            font-weight: 800;
+            text-align: center;
+            margin-top: 20px;
+            background: rgba(0, 255, 136, 0.15);
+            padding: 15px 20px;
+            border: 2px solid #00FF88;
+            border-radius: 8px;
+            display: none;
+        }
+
+        a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+
+    <!-- reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js?render=6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP"></script>
+    <script>
+        async function refreshRecaptchaToken() {
+            const token = await grecaptcha.execute(
+                '6LdsAgAtAAAAALJcw7MdkjTL4m1UtttVXIy6IWIP',
+                { action: 'submit' }
+            );
+            document.getElementById('recaptchaToken').value = token;
+        }
+        grecaptcha.ready(refreshRecaptchaToken);
+        setInterval(refreshRecaptchaToken, 120000);
+    </script>
+
+    <!-- Supabase -->
+    <script type="module">
+        import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+        window.client = createClient(
+            "https://rjkhizksbbpnmjlvzgfm.supabase.co",
+            "sb_publishable_7go8JEEmnxjziiHVu8iTBQ_lUyqsGhK"
+        );
+    </script>
+</head>
+
+<body>
+
+<div class="box">
+    <h1>Create Account</h1>
+
+    <form id="registerForm" autocomplete="off">
+
+        <input type="hidden" id="recaptchaToken">
+
+        <div class="input-box">
+            <label>Email</label>
+            <input type="text" class="input-field" id="email" required>
+        </div>
+
+        <div class="input-box">
+            <label>Password</label>
+            <input type="password" class="input-field" id="password" required>
+        </div>
+
+        <div class="input-box">
+            <label>Confirm Password</label>
+            <input type="password" class="input-field" id="confirmpassword" required>
+        </div>
+
+        <div id="password-match" style="color:#FF4D4D;display:none;">
+            Passwords do not match
+        </div>
+
+        <div class="input-box">
+            <label>Referral Code (Required)</label>
+            <input type="text" class="input-field" id="referralCode" required>
+        </div>
+
+        <button type="submit" class="btn-submit">Register</button>
+
+        <div id="popup"></div>
+
+        <p id="emailMessage">Check your email to confirm your account.</p>
+
+        <p style="margin-top:15px;">
+            Already have an account? <a href="signin.html">Sign In</a>
+        </p>
+
+    </form>
+</div>
+
+<script>
+// Hide all messages
+function hideMessages() {
+    document.getElementById("popup").style.display = "none";
+    document.getElementById("emailMessage").style.display = "none";
+}
+
+// Popup error
+function showPopup(msg) {
+    hideMessages();
+    let p = document.getElementById("popup");
+    p.innerText = msg;
+    p.style.display = "block";
+}
+
+// Generate codes
+function generateGoogleAuthCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function generateReferralCode() {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+
+// Auto-fill referral code
+const urlParams = new URLSearchParams(window.location.search);
+let ref = urlParams.get("ref");
+window.onload = () => {
+    document.getElementById("referralCode").value = ref ? ref : "SPINROOT";
+};
+
+// Password match
+document.getElementById('confirmpassword').addEventListener('input', function () {
+    const pass = document.getElementById('password').value;
+    const confirm = this.value;
+    document.getElementById('password-match').style.display =
+        pass !== confirm ? 'block' : 'none';
+});
+
+// FORM SUBMIT
+document.getElementById("registerForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    hideMessages();
+
+    const client = window.client;
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const confirmPassword = document.getElementById("confirmpassword").value.trim();
+    let referredBy = document.getElementById("referralCode").value.trim();
+
+    if (password !== confirmPassword) {
+        showPopup("Passwords do not match");
+        return;
+    }
+
+    if (!referredBy) referredBy = "SPINROOT";
+
+    const referralCode = generateReferralCode();
+    const googleAuthCode = generateGoogleAuthCode();
+    const now = new Date().toISOString();
+
+    // 1. Check if user exists
+    const { data: existing } = await client
+        .from("usersql")
+        .select("id, indicator")
+        .eq("email", email)
+        .maybeSingle();
+
+    if (existing) {
+        if (existing.indicator === 1) {
+            showPopup("Check your email to confirm account");
+            return;
+        }
+        if (existing.indicator === 2) {
+            showPopup("User already exists");
+            return;
+        }
+    }
+
+    // ⭐ STEP 1 — Get highest teammembers for SAME referred_by
+    const { data: rows } = await client
+        .from("usersql")
+        .select("teammembers")
+        .eq("referred_by", referredBy)
+        .order("teammembers", { ascending: false })
+        .limit(1);
+
+    // ⭐ STEP 2 — Compute next value
+    let teammembersValue = 1;
+
+    if (rows && rows.length > 0) {
+        teammembersValue = rows[0].teammembers + 1;
+    }
+
+    // ⭐ STEP 3 — Insert new user with computed teammembers
+    const { error: insertError } = await client
+        .from("usersql")
+        .insert({
+            email: email,
+            password: password,
+            joindate: now,
+
+            auth: 0,
+            authgoogle: googleAuthCode,
+            authsecurity: null,
+            authpassword: null,
+
+            referralcode: referralCode,
+            referred_by: referredBy,
+
+            indicator: 1,
+
+            teammembers: teammembersValue,   // ⭐ FIXED ⭐
+
+            teamtoken: "0.0000",
+            teamtokenpurchased: "0.0000",
+            teamtokenavailabe: "0.0000",
+            maxtoken: "10.0000",
+
+            totp_secret: null,
+            totp_enabled: false
+        });
+
+    if (insertError) {
+        showPopup("Database error: " + insertError.message);
+        return;
+    }
+
+    // 4. Create Supabase Auth user
+    const { error: authError } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+            emailRedirectTo: "https://spinwintoken-referral-system.vercel.app/registerconfirm.html"
+        }
+    });
+
+    if (authError) {
+        showPopup("Auth error: " + authError.message);
+        return;
+    }
+
+    // 5. Success
+    hideMessages();
+    document.getElementById("emailMessage").style.display = "block";
+});
+</script>
+
+</body>
+</html>
