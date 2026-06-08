@@ -32,7 +32,7 @@
       color: #fff;
       margin: 8px 0;
     }
-    #refDisplay, #emailDisplay, #maxTeamDisplay {
+    #emailDisplay, #refDisplay, #matchedRefDisplay, #maxTeamDisplay {
       margin-top: 12px;
       color: #00ffea;
       font-size: 14px;
@@ -47,7 +47,8 @@
 
     <p id="emailDisplay"></p>
     <p id="refDisplay"></p>
-    <p id="maxTeamDisplay"></p> <!-- ⭐ NEW -->
+    <p id="matchedRefDisplay"></p>
+    <p id="maxTeamDisplay"></p>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -60,8 +61,9 @@
 
     async function finalizeAccount() {
       const msg = document.getElementById("msg");
-      const refDisplay = document.getElementById("refDisplay");
       const emailDisplay = document.getElementById("emailDisplay");
+      const refDisplay = document.getElementById("refDisplay");
+      const matchedRefDisplay = document.getElementById("matchedRefDisplay");
       const maxTeamDisplay = document.getElementById("maxTeamDisplay");
 
       // 1️⃣ Hydrate session
@@ -105,9 +107,19 @@
       // 5️⃣ TEAMMEMBER LOGIC
       const { data: siblings } = await client
         .from("UsersSQL")
-        .select("teammembers")
+        .select("teammembers, referred_by")
         .eq("referred_by", referrerCode);
 
+      // ⭐ DISPLAY matched referred_by from UsersSQL table
+      if (siblings && siblings.length > 0) {
+        matchedRefDisplay.textContent =
+          "Matched Referred By in UsersSQL: " + siblings[0].referred_by;
+      } else {
+        matchedRefDisplay.textContent =
+          "Matched Referred By in UsersSQL: NONE FOUND";
+      }
+
+      // ⭐ FIND MAX TEAMMEMBERS
       let maxTeam = 0;
       if (siblings && siblings.length > 0) {
         maxTeam = Math.max(...siblings.map(r => r.teammembers || 0));
@@ -132,3 +144,4 @@
   </script>
 </body>
 </html>
+
