@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account Confirmed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 60px;
+      margin: 0;
+    }
+    .box {
+      background: #111;
+      padding: 40px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 480px;
+      margin: auto;
+      border: 1px solid #ffd700;
+    }
+    h1 {
+      color: #ffd700;
+      margin-bottom: 16px;
+    }
+    p {
+      font-size: 16px;
+      color: #fff;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Account Confirmed</h1>
+    <p id="msg">Finalizing your account...</p>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
+
+    const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function finalizeAccount() {
+      const msg = document.getElementById("msg");
+
+      // 1️⃣ Load session
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        msg.textContent = "Unable to load your session. Please sign in.";
+        return;
+      }
+
+      const uid = session.user.id;
+
+      // 2️⃣ Clean URL
+      history.replaceState(null, "", "registerconfirm.html");
+
+      // 3️⃣ Load THIS USER row
+      const { data: userRow, error: userErr } = await client
+        .from("UsersSQL")
+        .select("*")
+        .eq("uid", uid)
+        .single();
+
+      if (!userRow) {
+        msg.textContent = "User record not found.";
+        return;
+      }
+
+      const refCode = userRow.referred_by;
+
+      // 4️⃣ If no referral or SPINROOT → only update indicator
+      if (!refCode || refCode === "SPINROOT") {
+        await client
+          .from("UsersSQL")
+          .update({ indicator: 2 })
+          .eq("uid", uid);
+
+        msg.textContent = "Your email has been verified successfully!";
+        return;
+      }
+
+      // 5️⃣ Get all users with same referred_by
+      const { data: siblings } = await client
+        .from("UsersSQL")
+        .select("teammembers")
+        .eq("referred_by", refCode);
+
+      // 6️⃣ Compute max teammembers
+      let maxTeam = 0;
+      if (siblings && siblings.length > 0) {
+        maxTeam = Math.max(...siblings.map(r => r.teammembers || 0));
+      }
+
+      const newTeamCount = maxTeam + 1;
+
+      // 7️⃣ Update THIS USER ONLY
+      await client
+        .from("UsersSQL")
+        .update({
+          teammembers: newTeamCount,
+          indicator: 2
+        })
+        .eq("uid", uid);
+
+      // 8️⃣ Done
+      msg.textContent = "Your email has been verified successfully!";
+    }
+
+    finalizeAccount();
+  </script>
+</body>
+</html>
