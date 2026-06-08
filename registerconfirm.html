@@ -36,7 +36,9 @@
     #refDisplay,
     #matchedRefDisplay,
     #maxTeamDisplay,
-    #newTeamDisplay {
+    #newTeamDisplay,
+    #totalReferrals,
+    #referralList {
       margin-top: 12px;
       color: #00ffea;
       font-size: 14px;
@@ -54,6 +56,8 @@
     <p id="matchedRefDisplay"></p>
     <p id="maxTeamDisplay"></p>
     <p id="newTeamDisplay"></p>
+    <p id="totalReferrals"></p>
+    <p id="referralList"></p>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -71,6 +75,8 @@
       const matchedRefDisplay = document.getElementById("matchedRefDisplay");
       const maxTeamDisplay = document.getElementById("maxTeamDisplay");
       const newTeamDisplay = document.getElementById("newTeamDisplay");
+      const totalReferrals = document.getElementById("totalReferrals");
+      const referralList = document.getElementById("referralList");
 
       // 1️⃣ Hydrate session
       const { data: { session } } = await client.auth.getSession();
@@ -113,14 +119,14 @@
       // 5️⃣ TEAMMEMBER LOGIC
       const { data: siblings } = await client
         .from("UsersSQL")
-        .select("teammembers, referred_by")
+        .select("email, teammembers, referred_by")
         .eq("referred_by", referrerCode);
 
       // ⭐ DISPLAY matched referred_by
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ FIXED: GET ONLY REAL NUMBERS (ignore null)
+      // ⭐ GET ONLY REAL NUMBERS (ignore null, ignore empty)
       const nums = (siblings || [])
         .map(r => r.teammembers)
         .filter(v => v !== null && v !== "" && !Number.isNaN(Number(v)))
@@ -140,6 +146,14 @@
       newTeamDisplay.textContent =
         "Matched Referred By New Team Member Value (max+1): " + newTeamCount;
 
+      // ⭐ TOTAL REFERRALS
+      totalReferrals.textContent =
+        "Total Referrals for " + referrerCode + ": " + siblings.length;
+
+      // ⭐ REFERRAL LIST (emails)
+      const list = siblings.map(r => r.email).join(", ");
+      referralList.textContent = "Referral List: " + list;
+
       // 6️⃣ Update DB
       await client
         .from("UsersSQL")
@@ -154,6 +168,7 @@
   </script>
 </body>
 </html>
+
 
 
 
