@@ -80,8 +80,6 @@
       }
 
       const email = session.user.email;
-
-      // ⭐ DISPLAY EMAIL
       emailDisplay.textContent = "Email: " + email;
 
       // 2️⃣ Hide long URL
@@ -100,49 +98,43 @@
       }
 
       const referrerCode = userRow.referred_by;
-
-      // ⭐ DISPLAY referred_by
       refDisplay.textContent = "Referred By: " + referrerCode;
 
-      // 4️⃣ Update NEW USER indicator = 2  (this is the part you need preserved)
+      // 4️⃣ Update NEW USER indicator = 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
         .eq("email", email);
 
-      // 5️⃣ TEAMMEMBER LOGIC: get all rows for this referred_by
-      const { data: siblings, error: sibErr } = await client
+      // 5️⃣ Get highest teammembers for this referred_by directly from DB
+      const { data: maxRow, error: maxErr } = await client
         .from("UsersSQL")
-        .select("teammembers, referred_by")
-        .eq("referred_by", referrerCode);
+        .select("teammembers")
+        .eq("referred_by", referrerCode)
+        .not("teammembers", "is", null)
+        .order("teammembers", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (sibErr) {
-        msg.textContent = "Error loading team data.";
-        return;
-      }
-
-      // ⭐ DISPLAY matched referred_by
       matchedRefDisplay.textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      // ⭐ GET ONLY REAL NUMBERS (ignore null/empty)
-      const nums = (siblings || [])
-        .map(r => r.teammembers)
-        .filter(v => v !== null && v !== "" && !Number.isNaN(Number(v)))
-        .map(v => Number(v));
+      let maxTeam = 0;
+      if (maxErr) {
+        msg.textContent = "Error reading teammembers.";
+        return;
+      }
 
-      // ⭐ TRUE HIGHEST teammembers VALUE FROM DB
-      // If there are no valid numbers yet, treat as "no teammembers set" and start from 0
-      const maxTeam = nums.length > 0 ? Math.max(...nums) : 0;
+      if (maxRow && maxRow.teammembers !== null && maxRow.teammembers !== "") {
+        maxTeam = Number(maxRow.teammembers);
+        if (Number.isNaN(maxTeam)) maxTeam = 0;
+      }
 
-      // ⭐ DISPLAY HIGHEST VALUE FROM DB
       maxTeamDisplay.textContent =
         "Matched Referred By teammembers (highest from DB): " + maxTeam;
 
-      // ⭐ NEW TEAM MEMBER VALUE = max + 1
       const newTeamCount = maxTeam + 1;
 
-      // ⭐ DISPLAY NEW VALUE
       newTeamDisplay.textContent =
         "Matched Referred By New teammembers Value (max+1): " + newTeamCount;
 
@@ -152,7 +144,6 @@
         .update({ teammembers: newTeamCount })
         .eq("email", email);
 
-      // 7️⃣ Done
       msg.textContent = "Your email has been verified successfully!";
     }
 
@@ -160,6 +151,7 @@
   </script>
 </body>
 </html>
+
 
 
 
