@@ -32,7 +32,11 @@
       color: #fff;
       margin: 8px 0;
     }
-    #emailDisplay, #refDisplay, #matchedRefDisplay, #maxTeamDisplay {
+    #emailDisplay,
+    #refDisplay,
+    #matchedRefDisplay,
+    #maxTeamDisplay,
+    #newTeamDisplay {
       margin-top: 12px;
       color: #00ffea;
       font-size: 14px;
@@ -49,6 +53,7 @@
     <p id="refDisplay"></p>
     <p id="matchedRefDisplay"></p>
     <p id="maxTeamDisplay"></p>
+    <p id="newTeamDisplay"></p>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -65,6 +70,7 @@
       const refDisplay = document.getElementById("refDisplay");
       const matchedRefDisplay = document.getElementById("matchedRefDisplay");
       const maxTeamDisplay = document.getElementById("maxTeamDisplay");
+      const newTeamDisplay = document.getElementById("newTeamDisplay");
 
       // 1️⃣ Hydrate session
       const { data: { session } } = await client.auth.getSession();
@@ -119,16 +125,24 @@
           "Matched Referred By in UsersSQL: NONE FOUND";
       }
 
-      // ⭐ FIND MAX TEAMMEMBERS
+      // ⭐ FIND MAX TEAMMEMBERS (numeric, from existing rows)
       let maxTeam = 0;
       if (siblings && siblings.length > 0) {
-        maxTeam = Math.max(...siblings.map(r => r.teammembers || 0));
+        const nums = siblings.map(r => {
+          const v = Number(r.teammembers);
+          return Number.isNaN(v) ? 0 : v;
+        });
+        maxTeam = Math.max(...nums);
       }
 
-      // ⭐ DISPLAY MAX TEAMMEMBER VALUE
-      maxTeamDisplay.textContent = "Max Team Member Value: " + maxTeam;
+      // ⭐ DISPLAY EXISTING MAX TEAMMEMBER VALUE
+      maxTeamDisplay.textContent = "Existing Max Team Member Value: " + maxTeam;
 
+      // ⭐ NEW TEAM MEMBER VALUE FOR THIS USER
       const newTeamCount = maxTeam + 1;
+
+      // ⭐ DISPLAY NEW TEAM MEMBER VALUE
+      newTeamDisplay.textContent = "This User Team Member Value: " + newTeamCount;
 
       // 6️⃣ Update ONLY teammembers
       await client
@@ -144,6 +158,7 @@
   </script>
 </body>
 </html>
+
 
 
 
