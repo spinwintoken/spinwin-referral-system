@@ -43,7 +43,6 @@
 
     <p id="emailDisplay" class="out"></p>
     <p id="refDisplay" class="out"></p>
-    <p id="matchedRefDisplay" class="out"></p>
     <p id="rowsCountDisplay" class="out"></p>
     <p id="allTeamDisplay" class="out"></p>
     <p id="maxTeamDisplay" class="out"></p>
@@ -71,10 +70,7 @@
       const email = session.user.email;
       document.getElementById("emailDisplay").textContent = "Email: " + email;
 
-      // 2️⃣ Clean URL
-      history.replaceState(null, "", "registerconfirm.html");
-
-      // 3️⃣ Load this user's row
+      // 2️⃣ Load this user's row
       const { data: userRow } = await client
         .from("UsersSQL")
         .select("*")
@@ -90,21 +86,12 @@
       document.getElementById("refDisplay").textContent =
         "Referred By: " + referrerCode;
 
-      // 4️⃣ Keep indicator = 2
-      await client
-        .from("UsersSQL")
-        .update({ indicator: 2 })
-        .eq("email", email);
-
-      // 5️⃣ Read ALL rows for this referred_by
+      // 3️⃣ Read ALL rows for this referred_by
       const { data: refRows } = await client
         .from("UsersSQL")
         .select("teammembers")
         .eq("referred_by", referrerCode)
         .order("teammembers", { ascending: true });
-
-      document.getElementById("matchedRefDisplay").textContent =
-        "Matched Referred By in UsersSQL: " + referrerCode;
 
       // Count rows
       const rowsCount = refRows.length;
@@ -145,12 +132,12 @@
       document.getElementById("maxTeamDisplay").textContent =
         "Highest teammembers for " + referrerCode + ": " + maxTeam;
 
-      // 6️⃣ New value = highest + 1
+      // 4️⃣ New value = highest + 1
       const newTeamCount = maxTeam + 1;
       document.getElementById("newTeamDisplay").textContent =
         "New teammembers value (max+1): " + newTeamCount;
 
-      // 7️⃣ Update this user's teammembers
+      // 5️⃣ Update this user's teammembers
       await client
         .from("UsersSQL")
         .update({ teammembers: newTeamCount })
@@ -163,6 +150,7 @@
   </script>
 </body>
 </html>
+
 
 
 
