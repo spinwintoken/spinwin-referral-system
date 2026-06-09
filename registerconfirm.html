@@ -5,15 +5,40 @@
   <title>Email Confirmed - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; text-align:center; }
-    .box { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
-    h1 { color:#ffd700; }
-    .msg { margin-top:20px; font-size:1.4rem; font-weight:bold; }
-    .success { color:#00ff88; }
-    .error { color:#ff4d4d; }
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .box {
+      max-width: 420px;
+      margin: auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+    }
+
+    h1 {
+      color: #ffd700;
+      margin-bottom: 20px;
+    }
+
+    .msg {
+      margin-top: 20px;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .success { color: #00ff88; }
+    .error { color: #ff4d4d; }
   </style>
 </head>
 
@@ -32,15 +57,21 @@
     const statusEl = document.getElementById("status");
 
     async function processConfirmation() {
-      const hash = window.location.hash;
+      const params = new URLSearchParams(window.location.search);
 
-      if (!hash.includes("access_token")) {
+      const accessToken = params.get("access_token");
+      const type = params.get("type");
+
+      if (!accessToken || !type) {
         statusEl.textContent = "Invalid confirmation link.";
         statusEl.classList.add("error");
         return;
       }
 
-      // ⭐ DO NOT USE CAPTCHA HERE
+      // ⭐ Convert query parameters back into Supabase hash format
+      const hash = `#access_token=${accessToken}&type=${type}`;
+
+      // 1️⃣ Exchange token for session (NO CAPTCHA HERE)
       const { data, error } = await client.auth.exchangeCodeForSession(hash);
 
       if (error) {
@@ -51,6 +82,7 @@
 
       const user = data.user;
 
+      // 2️⃣ Update indicator to 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
@@ -59,6 +91,7 @@
       statusEl.textContent = "Email confirmed successfully!";
       statusEl.classList.add("success");
 
+      // 3️⃣ Redirect to signin
       setTimeout(() => {
         window.location.href = "signin.html";
       }, 2000);
