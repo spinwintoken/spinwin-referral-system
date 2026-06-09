@@ -5,7 +5,6 @@
   <title>Email Confirmed - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
@@ -68,10 +67,10 @@
         return;
       }
 
-      // ⭐ Convert query parameters back into Supabase hash format
+      // Convert query params into Supabase hash format
       const hash = `#access_token=${accessToken}&type=${type}`;
 
-      // 1️⃣ Exchange token for session (NO CAPTCHA HERE)
+      // Exchange token for session
       const { data, error } = await client.auth.exchangeCodeForSession(hash);
 
       if (error) {
@@ -82,7 +81,7 @@
 
       const user = data.user;
 
-      // 2️⃣ Update indicator to 2
+      // Update indicator to 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
@@ -91,7 +90,6 @@
       statusEl.textContent = "Email confirmed successfully!";
       statusEl.classList.add("success");
 
-      // 3️⃣ Redirect to signin
       setTimeout(() => {
         window.location.href = "signin.html";
       }, 2000);
@@ -101,3 +99,4 @@
   </script>
 </body>
 </html>
+
