@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Account Confirmed</title>
+  <title>UsersSQL Debug</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -10,44 +10,31 @@
       background: #000;
       color: #ffd700;
       font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 60px;
-      margin: 0;
-    }
-    .box {
-      background: #111;
       padding: 40px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 480px;
-      margin: auto;
-      border: 1px solid #ffd700;
+    }
+    h1 {
+      color: #ffd700;
+    }
+    pre {
+      background: #111;
+      color: #00ffea;
+      padding: 20px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      font-size: 14px;
     }
     p {
-      font-size: 16px;
-      color: #fff;
-      margin: 8px 0;
-    }
-    .out {
-      margin-top: 12px;
-      color: #00ffea;
-      font-size: 14px;
+      font-size: 18px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 
 <body>
-  <div class="box">
-    <h1>Account Confirmed</h1>
-    <p id="msg">Finalizing your account...</p>
+  <h1>UsersSQL — All Rows</h1>
 
-    <p id="emailDisplay" class="out"></p>
-    <p id="refDisplay" class="out"></p>
-    <p id="rowsCountDisplay" class="out"></p>
-    <p id="allTeamDisplay" class="out"></p>
-    <p id="maxTeamDisplay" class="out"></p>
-    <p id="newTeamDisplay" class="out"></p>
-  </div>
+  <p id="rowsCount"></p>
+  <pre id="rowsOutput"></pre>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -57,96 +44,29 @@
 
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    async function finalizeAccount() {
-      const msg = document.getElementById("msg");
-
-      // 1️⃣ Load session
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) {
-        msg.textContent = "Unable to load your session. Please sign in.";
-        return;
-      }
-
-      const email = session.user.email;
-      document.getElementById("emailDisplay").textContent = "Email: " + email;
-
-      // 2️⃣ Load this user's row
-      const { data: userRow } = await client
+    async function loadAllRows() {
+      // Read ALL rows from UsersSQL
+      const { data, error } = await client
         .from("UsersSQL")
         .select("*")
-        .eq("email", email)
-        .single();
+        .order("email", { ascending: true });
 
-      if (!userRow) {
-        msg.textContent = "User record not found in UsersSQL.";
+      if (error) {
+        document.getElementById("rowsOutput").textContent =
+          "Error reading UsersSQL: " + error.message;
         return;
       }
 
-      const referrerCode = userRow.referred_by;
-      document.getElementById("refDisplay").textContent =
-        "Referred By: " + referrerCode;
+      // Display row count
+      document.getElementById("rowsCount").textContent =
+        "Total rows in UsersSQL: " + data.length;
 
-      // 3️⃣ Read ALL rows for this referred_by
-      const { data: refRows } = await client
-        .from("UsersSQL")
-        .select("teammembers")
-        .eq("referred_by", referrerCode)
-        .order("teammembers", { ascending: true });
-
-      // Count rows
-      const rowsCount = refRows.length;
-      document.getElementById("rowsCountDisplay").textContent =
-        "Rows in UsersSQL for " + referrerCode + ": " + rowsCount;
-
-      // Extract numeric teammembers values
-      const teamValues = refRows
-        .map(r => Number(r.teammembers))
-        .filter(v => !Number.isNaN(v));
-
-      // If no rows exist → treat highest as 0
-      if (teamValues.length === 0) {
-        document.getElementById("allTeamDisplay").textContent =
-          referrerCode + " group has teammembers: (none)";
-        document.getElementById("maxTeamDisplay").textContent =
-          "Highest teammembers for " + referrerCode + ": 0";
-
-        const newTeamCount = 1;
-        document.getElementById("newTeamDisplay").textContent =
-          "New teammembers value (max+1): " + newTeamCount;
-
-        await client
-          .from("UsersSQL")
-          .update({ teammembers: newTeamCount })
-          .eq("email", email);
-
-        msg.textContent = "Your email has been verified successfully!";
-        return;
-      }
-
-      // Show list of teammembers
-      document.getElementById("allTeamDisplay").textContent =
-        referrerCode + " group has teammembers: " + teamValues.join(", ");
-
-      // Highest value
-      const maxTeam = Math.max(...teamValues);
-      document.getElementById("maxTeamDisplay").textContent =
-        "Highest teammembers for " + referrerCode + ": " + maxTeam;
-
-      // 4️⃣ New value = highest + 1
-      const newTeamCount = maxTeam + 1;
-      document.getElementById("newTeamDisplay").textContent =
-        "New teammembers value (max+1): " + newTeamCount;
-
-      // 5️⃣ Update this user's teammembers
-      await client
-        .from("UsersSQL")
-        .update({ teammembers: newTeamCount })
-        .eq("email", email);
-
-      msg.textContent = "Your email has been verified successfully!";
+      // Display all rows as JSON
+      document.getElementById("rowsOutput").textContent =
+        JSON.stringify(data, null, 2);
     }
 
-    finalizeAccount();
+    loadAllRows();
   </script>
 </body>
 </html>
