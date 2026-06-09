@@ -7,43 +7,33 @@
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+  <!-- reCAPTCHA v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+  <script>
+    async function loadCaptcha() {
+      const token = await grecaptcha.execute(
+        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+        { action: "confirm" }
+      );
+      document.getElementById("recaptchaToken").value = token;
+    }
+    grecaptcha.ready(loadCaptcha);
+  </script>
+
   <style>
-    body {
-      background: #000;
-      color: #ffd700;
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      text-align: center;
-    }
-
-    .box {
-      max-width: 420px;
-      margin: auto;
-      background: #111;
-      padding: 30px;
-      border-radius: 12px;
-      border: 1px solid #ffd700;
-    }
-
-    h1 {
-      color: #ffd700;
-      margin-bottom: 20px;
-    }
-
-    .msg {
-      margin-top: 20px;
-      font-size: 1.4rem;
-      font-weight: bold;
-    }
-
-    .success { color: #00ff88; }
-    .error { color: #ff4d4d; }
+    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; text-align:center; }
+    .box { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { color:#ffd700; }
+    .msg { margin-top:20px; font-size:1.4rem; font-weight:bold; }
+    .success { color:#00ff88; }
+    .error { color:#ff4d4d; }
   </style>
 </head>
 
 <body>
   <div class="box">
     <h1>Email Confirmation</h1>
+    <input type="hidden" id="recaptchaToken">
     <div id="status" class="msg"></div>
   </div>
 
@@ -57,7 +47,6 @@
 
     async function processConfirmation() {
       const params = new URLSearchParams(window.location.search);
-
       const accessToken = params.get("access_token");
       const type = params.get("type");
 
@@ -67,10 +56,15 @@
         return;
       }
 
-      // Convert query params into Supabase hash format
+      // Wait for captcha token
+      let captcha = document.getElementById("recaptchaToken").value;
+      while (!captcha) {
+        await new Promise(r => setTimeout(r, 100));
+        captcha = document.getElementById("recaptchaToken").value;
+      }
+
       const hash = `#access_token=${accessToken}&type=${type}`;
 
-      // Exchange token for session
       const { data, error } = await client.auth.exchangeCodeForSession(hash);
 
       if (error) {
@@ -81,7 +75,6 @@
 
       const user = data.user;
 
-      // Update indicator to 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
@@ -95,8 +88,9 @@
       }, 2000);
     }
 
-    processConfirmation();
+    window.onload = () => setTimeout(processConfirmation, 300);
   </script>
 </body>
 </html>
+
 
