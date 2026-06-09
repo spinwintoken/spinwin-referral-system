@@ -23,10 +23,6 @@
       margin: auto;
       border: 1px solid #ffd700;
     }
-    h1 {
-      color: #ffd700;
-      margin-bottom: 16px;
-    }
     p {
       font-size: 16px;
       color: #fff;
@@ -64,13 +60,6 @@
 
     async function finalizeAccount() {
       const msg = document.getElementById("msg");
-      const emailDisplay = document.getElementById("emailDisplay");
-      const refDisplay = document.getElementById("refDisplay");
-      const matchedRefDisplay = document.getElementById("matchedRefDisplay");
-      const rowsCountDisplay = document.getElementById("rowsCountDisplay");
-      const allTeamDisplay = document.getElementById("allTeamDisplay");
-      const maxTeamDisplay = document.getElementById("maxTeamDisplay");
-      const newTeamDisplay = document.getElementById("newTeamDisplay");
 
       // 1️⃣ Load session
       const { data: { session } } = await client.auth.getSession();
@@ -80,64 +69,62 @@
       }
 
       const email = session.user.email;
-      emailDisplay.textContent = "Email: " + email;
+      document.getElementById("emailDisplay").textContent = "Email: " + email;
 
       // 2️⃣ Clean URL
       history.replaceState(null, "", "registerconfirm.html");
 
       // 3️⃣ Load this user's row
-      const { data: userRow, error: userErr } = await client
+      const { data: userRow } = await client
         .from("UsersSQL")
         .select("*")
         .eq("email", email)
         .single();
 
-      if (userErr || !userRow) {
+      if (!userRow) {
         msg.textContent = "User record not found in UsersSQL.";
         return;
       }
 
       const referrerCode = userRow.referred_by;
-      refDisplay.textContent = "Referred By: " + referrerCode;
+      document.getElementById("refDisplay").textContent =
+        "Referred By: " + referrerCode;
 
-      // 4️⃣ Keep indicator = 2 (as you said, correct)
+      // 4️⃣ Keep indicator = 2
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
         .eq("email", email);
 
       // 5️⃣ Read ALL rows for this referred_by
-      const { data: refRows, error: refErr } = await client
+      const { data: refRows } = await client
         .from("UsersSQL")
         .select("teammembers")
         .eq("referred_by", referrerCode)
         .order("teammembers", { ascending: true });
 
-      matchedRefDisplay.textContent =
+      document.getElementById("matchedRefDisplay").textContent =
         "Matched Referred By in UsersSQL: " + referrerCode;
 
-      if (refErr) {
-        msg.textContent = "Error reading UsersSQL.";
-        return;
-      }
-
-      const rowsCount = (refRows || []).length;
-      rowsCountDisplay.textContent =
+      // Count rows
+      const rowsCount = refRows.length;
+      document.getElementById("rowsCountDisplay").textContent =
         "Rows in UsersSQL for " + referrerCode + ": " + rowsCount;
 
       // Extract numeric teammembers values
-      const teamValues = (refRows || [])
+      const teamValues = refRows
         .map(r => Number(r.teammembers))
         .filter(v => !Number.isNaN(v));
 
+      // If no rows exist → treat highest as 0
       if (teamValues.length === 0) {
-        allTeamDisplay.textContent =
+        document.getElementById("allTeamDisplay").textContent =
           referrerCode + " group has teammembers: (none)";
-        maxTeamDisplay.textContent =
+        document.getElementById("maxTeamDisplay").textContent =
           "Highest teammembers for " + referrerCode + ": 0";
-        // No existing values → treat highest as 0, new = 1
+
         const newTeamCount = 1;
-        newTeamDisplay.textContent =
+        document.getElementById("newTeamDisplay").textContent =
           "New teammembers value (max+1): " + newTeamCount;
 
         await client
@@ -149,18 +136,18 @@
         return;
       }
 
-      // Display all teammembers for this group
-      allTeamDisplay.textContent =
+      // Show list of teammembers
+      document.getElementById("allTeamDisplay").textContent =
         referrerCode + " group has teammembers: " + teamValues.join(", ");
 
       // Highest value
       const maxTeam = Math.max(...teamValues);
-      maxTeamDisplay.textContent =
+      document.getElementById("maxTeamDisplay").textContent =
         "Highest teammembers for " + referrerCode + ": " + maxTeam;
 
       // 6️⃣ New value = highest + 1
       const newTeamCount = maxTeam + 1;
-      newTeamDisplay.textContent =
+      document.getElementById("newTeamDisplay").textContent =
         "New teammembers value (max+1): " + newTeamCount;
 
       // 7️⃣ Update this user's teammembers
