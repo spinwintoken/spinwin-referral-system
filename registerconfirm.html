@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Email Confirmed - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; text-align:center; }
+    .box { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { color:#ffd700; }
+    .msg { margin-top:20px; font-size:1.4rem; font-weight:bold; }
+    .success { color:#00ff88; }
+    .error { color:#ff4d4d; }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Email Confirmation</h1>
+    <div id="status" class="msg"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    const statusEl = document.getElementById("status");
+
+    async function processConfirmation() {
+      const hash = window.location.hash;
+
+      if (!hash.includes("access_token")) {
+        statusEl.textContent = "Invalid confirmation link.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // ⭐ DO NOT USE CAPTCHA HERE
+      const { data, error } = await client.auth.exchangeCodeForSession(hash);
+
+      if (error) {
+        statusEl.textContent = "Invalid confirmation link.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      const user = data.user;
+
+      await client
+        .from("UsersSQL")
+        .update({ indicator: 2 })
+        .eq("uid", user.id);
+
+      statusEl.textContent = "Email confirmed successfully!";
+      statusEl.classList.add("success");
+
+      setTimeout(() => {
+        window.location.href = "signin.html";
+      }, 2000);
+    }
+
+    processConfirmation();
+  </script>
+</body>
+</html>
