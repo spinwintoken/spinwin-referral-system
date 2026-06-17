@@ -5,7 +5,11 @@
   <title>Set Up 2FA - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- TOTP Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib.umd.min.js"></script>
 
   <style>
     body { background:#000; color:#ffd700; font-family:Arial; padding:40px; }
@@ -31,7 +35,7 @@
     <p>Enter the 6‑digit code:</p>
     <input type="text" id="code" placeholder="123456">
 
-    <button onclick="verifyCode()">Enable 2FA</button>
+    <button onclick="enable2FA()">Enable 2FA</button>
 
     <div id="status" class="msg"></div>
   </div>
@@ -54,24 +58,25 @@
 
       const user = session.session.user;
 
-      // Generate TOTP secret
-      const { data, error } = await client.auth.mfa.generate({
-        factorType: "totp"
-      });
+      // Generate Base32 secret
+      secret = otplib.authenticator.generateSecret();
 
-      if (error) {
-        statusEl.textContent = "Error generating 2FA secret.";
-        statusEl.classList.add("error");
-        return;
-      }
+      // Build otpauth:// URL
+      const otpauth = otplib.authenticator.keyuri(
+        user.email,
+        "SpinWinToken",
+        secret
+      );
 
-      secret = data.totp.secret;
+      // Generate QR code using Google Charts API
+      const qrURL =
+        "https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=" +
+        encodeURIComponent(otpauth);
 
-      // Show QR code
-      document.getElementById("qr").src = data.totp.qr_code;
+      document.getElementById("qr").src = qrURL;
     }
 
-    async function verifyCode() {
+    async function enable2FA() {
       statusEl.textContent = "";
       statusEl.className = "msg";
 
@@ -83,13 +88,9 @@
       }
 
       // Verify TOTP code
-      const { data, error } = await client.auth.mfa.verify({
-        factorType: "totp",
-        code,
-        challengeId: null
-      });
+      const isValid = otplib.authenticator.check(code, secret);
 
-      if (error) {
+      if (!isValid) {
         statusEl.textContent = "Invalid code.";
         statusEl.classList.add("error");
         return;
@@ -118,3 +119,4 @@
   </script>
 </body>
 </html>
+
