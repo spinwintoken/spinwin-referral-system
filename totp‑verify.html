@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verify 2FA - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- TOTP Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib.umd.min.js"></script>
+
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; }
+    .box { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { text-align:center; color:#ffd700; }
+    input { width:100%; padding:12px; margin-top:12px; border-radius:6px; border:1px solid #444; background:#222; color:#ffd700; }
+    button { width:100%; padding:12px; margin-top:20px; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+    .msg { margin-top:20px; font-size:1.2rem; font-weight:bold; text-align:center; }
+    .error { color:#ff4d4d; }
+    .success { color:#00ff88; }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Enter 2FA Code</h1>
+
+    <p>Open Google Authenticator and enter the 6‑digit code.</p>
+
+    <input type="text" id="code" placeholder="123456">
+
+    <button onclick="verify2FA()">Verify</button>
+
+    <div id="status" class="msg"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    const statusEl = document.getElementById("status");
+    let secret = null;
+
+    async function loadSecret() {
+      const { data: session } = await client.auth.getSession();
+      if (!session.session) {
+        window.location.href = "signin.html";
+        return;
+      }
+
+      const user = session.session.user;
+
+      // Fetch secret from UsersSQL
+      const { data: row } = await client
+        .from("UsersSQL")
+        .select("totp_secret")
+        .eq("uid", user.id)
+        .single();
+
+      if (!row || !row.totp_secret) {
+        statusEl.textContent = "2FA not set up.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      secret = row.totp_secret;
+    }
+
+    async function verify2FA() {
+      statusEl.textContent = "";
+      statusEl.className = "msg";
+
+      const code = document.getElementById("code").value.trim();
+      if (!code) {
+        statusEl.textContent = "Enter the 6‑digit code.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // Verify TOTP code
+      const isValid = otplib.authenticator.check(code, secret);
+
+      if (!isValid) {
+        statusEl.textContent = "Invalid code.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      statusEl.textContent = "2FA verified!";
+      statusEl.classList.add("success");
+
+      setTimeout(() => {
+        window.location.href = "dashboard.html"; // Change if needed
+      }, 1200);
+    }
+
+    loadSecret();
+  </script>
+</body>
+</html>
