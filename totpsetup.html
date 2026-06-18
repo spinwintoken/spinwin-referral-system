@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Set Up 2FA - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- TOTP Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib.umd.min.js"></script>
+
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; }
+    .box { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { text-align:center; color:#ffd700; }
+    img { display:block; margin:20px auto; }
+    input { width:100%; padding:12px; margin-top:12px; border-radius:6px; border:1px solid #444; background:#222; color:#ffd700; }
+    button { width:100%; padding:12px; margin-top:20px; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+    .msg { margin-top:20px; font-size:1.2rem; font-weight:bold; text-align:center; }
+    .error { color:#ff4d4d; }
+    .success { color:#00ff88; }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Set Up 2FA</h1>
+
+    <p>Scan this QR code with Google Authenticator or Authy.</p>
+
+    <img id="qr" width="220">
+
+    <p>Enter the 6‑digit code:</p>
+    <input type="text" id="code" placeholder="123456">
+
+    <button onclick="enable2FA()">Enable 2FA</button>
+
+    <div id="status" class="msg"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    const statusEl = document.getElementById("status");
+    let secret = null;
+
+    async function loadSetup() {
+      const { data: session } = await client.auth.getSession();
+      if (!session.session) {
+        window.location.href = "signin.html";
+        return;
+      }
+
+      const user = session.session.user;
+
+      // Generate Base32 secret
+      secret = otplib.authenticator.generateSecret();
+
+      // Build otpauth:// URL
+      const otpauth = otplib.authenticator.keyuri(
+        user.email,
+        "SpinWinToken",
+        secret
+      );
+
+      // Generate QR code using Google Charts API
+      const qrURL =
+        "https://chart.googleapis.com/chart?cht=qr&chs=220x220&chl=" +
+        encodeURIComponent(otpauth);
+
+      document.getElementById("qr").src = qrURL;
+    }
+
+    async function enable2FA() {
+      statusEl.textContent = "";
+      statusEl.className = "msg";
+
+      const code = document.getElementById("code").value.trim();
+      if (!code) {
+        statusEl.textContent = "Enter the 6‑digit code.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // Verify TOTP code
+      const isValid = otplib.authenticator.check(code, secret);
+
+      if (!isValid) {
+        statusEl.textContent = "Invalid code.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      const user = (await client.auth.getUser()).data.user;
+
+      // Save to UsersSQL
+      await client
+        .from("UsersSQL")
+        .update({
+          totp_secret: secret,
+          totp_enabled: true
+        })
+        .eq("uid", user.id);
+
+      statusEl.textContent = "2FA enabled!";
+      statusEl.classList.add("success");
+
+      setTimeout(() => {
+        window.location.href = "totp-verify.html";
+      }, 1500);
+    }
+
+    loadSetup();
+  </script>
+</body>
+</html>
