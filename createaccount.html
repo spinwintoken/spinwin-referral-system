@@ -8,19 +8,8 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- reCAPTCHA -->
+  <!-- reCAPTCHA v3 -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
-  <script>
-    async function refreshRecaptchaToken() {
-      const token = await grecaptcha.execute(
-        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
-        { action: "signup" }
-      );
-      document.getElementById("recaptchaToken").value = token;
-    }
-    grecaptcha.ready(refreshRecaptchaToken);
-    setInterval(refreshRecaptchaToken, 120000);
-  </script>
 
   <style>
     body { font-family: Arial; background:#000; color:#ffd700; padding:40px; margin:0; }
@@ -118,64 +107,4 @@
           return;
         }
         if (existing.indicator == 1) {
-          statusEl.textContent = "Account already created. Please confirm your email.";
-          statusEl.classList.add("error");
-          return;
-        }
-      }
-
-      // 2️⃣ CREATE ACCOUNT (FIXED REDIRECT URL)
-      const { data, error } = await client.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: "https://spinwin-referral-system.vercel.app/registerconfirm.html",
-          captchaToken: token
-        }
-      });
-
-      if (error) {
-        console.error(error);
-        statusEl.textContent = "Signup error: " + error.message;
-        statusEl.classList.add("error");
-        return;
-      }
-
-      const uid = data.user.id;
-      const referralCode = generateReferralCode();
-
-      // 3️⃣ INSERT INTO UsersSQL
-      const { error: insertError } = await client.from("UsersSQL").insert({
-        uid,
-        email,
-        indicator: 1,
-        referralcode: referralCode,
-        referred_by: ref,
-        teammembers: 0,
-        teamtoken: 0,
-        teamtokenpurchased: 0,
-        teamtokenavailable: 0,
-        maxtoken: 10,
-        totp_secret: null,
-        totp_enabled: false
-      });
-
-      if (insertError) {
-        console.error(insertError);
-        statusEl.textContent = "Database insert error: " + insertError.message;
-        statusEl.classList.add("error");
-        return;
-      }
-
-      statusEl.textContent = "Account created. Please check your email to confirm.";
-      statusEl.classList.add("success");
-      form.reset();
-    }
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      completeSignup(document.getElementById("recaptchaToken").value);
-    });
-  </script>
-</body>
-</html>
+          statusEl.textContent =
