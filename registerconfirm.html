@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account Confirmed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 60px;
+      margin: 0;
+    }
+    .box {
+      background: #111;
+      padding: 40px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 480px;
+      margin: auto;
+      border: 1px solid #ffd700;
+    }
+    p {
+      font-size: 18px;
+      color: #fff;
+      margin: 10px 0;
+    }
+    .out {
+      margin-top: 12px;
+      color: #00ffea;
+      font-size: 16px;
+    }
+    .btn {
+      margin-top: 25px;
+      padding: 12px 20px;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover {
+      background: #e6c200;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Account Confirmed</h1>
+    <p id="msg">Finalizing your account...</p>
+
+    <p id="emailDisplay" class="out"></p>
+    <p id="refDisplay" class="out"></p>
+
+    <a href="signin.html" id="signinBtn" class="btn" style="display:none;">Sign In</a>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    const supabaseUrl = "https://fchwxnontbfybypezpge.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI";
+
+    const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function finalizeAccount() {
+      const msg = document.getElementById("msg");
+
+      // ⭐ 1️⃣ Extract tokens from URL (supports both # and ? formats)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+
+      const access_token =
+        hashParams.get("access_token") || queryParams.get("access_token");
+      const refresh_token =
+        hashParams.get("refresh_token") || queryParams.get("refresh_token");
+
+      if (!access_token || !refresh_token) {
+        msg.textContent = "Invalid or expired confirmation link. Please sign in.";
+        document.getElementById("signinBtn").style.display = "inline-block";
+        return;
+      }
+
+      // ⭐ 2️⃣ Hydrate the session manually
+      await client.auth.setSession({
+        access_token,
+        refresh_token
+      });
+
+      // ⭐ 3️⃣ Load session
+      const { data: { session } } = await client.auth.getSession();
+
+      if (!session) {
+        msg.textContent = "Unable to load your session. Please sign in.";
+        document.getElementById("signinBtn").style.display = "inline-block";
+        return;
+      }
+
+      const email = session.user.email;
+      document.getElementById("emailDisplay").textContent = "Email: " + email;
+
+      // ⭐ 4️⃣ Load user row
+      const { data: userRow } = await client
+        .from("UsersSQL")
+        .select("*")
+        .eq("email", email)
+        .single();
+
+      if (!userRow) {
+        msg.textContent = "User record not found.";
+        document.getElementById("signinBtn").style.display = "inline-block";
+        return;
+      }
+
+      const referrerCode = userRow.referred_by;
+      document.getElementById("refDisplay").textContent =
+        "Referred By: " + referrerCode;
+
+      // ⭐ 5️⃣ Set indicator = 2
+      await client
+        .from("UsersSQL")
+        .update({ indicator: 2 })
+        .eq("email", email);
+
+      // ⭐ 6️⃣ Calculate new teammembers
+      const { data: refRows } = await client
+        .from("UsersSQL")
+        .select("teammembers")
+        .eq("referred_by", referrerCode)
+        .order("teammembers", { ascending: true });
+
+      const teamValues = refRows
+        .map(r => Number(r.teammembers))
+        .filter(v => !Number.isNaN(v));
+
+      const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
+      const newTeamCount = maxTeam + 1;
+
+      // ⭐ 7️⃣ Update this user's teammembers
+      await client
+        .from("UsersSQL")
+        .update({ teammembers: newTeamCount })
+        .eq("email", email);
+
+      // ⭐ 8️⃣ Final message + show Sign In button
+      msg.textContent = "Your email has been verified successfully!";
+      document.getElementById("signinBtn").style.display = "inline-block";
+    }
+
+    finalizeAccount();
+  </script>
+</body>
+</html>
