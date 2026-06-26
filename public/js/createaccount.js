@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
       email,
       password,
       options: {
-        emailRedirectTo: "https://spinwin-referral-system.vercel.app/registerconfirm.html",
+        emailRedirectTo: emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html?type=signup",
         captchaToken: token
       }
     });
