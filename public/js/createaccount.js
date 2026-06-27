@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 1️⃣ CHECK IF EMAIL EXISTS
     const { data: existing } = await client
       .from("UsersSQL")
       .select("indicator")
@@ -44,32 +43,29 @@ document.addEventListener("DOMContentLoaded", () => {
       .maybeSingle();
 
     if (existing) {
-      if (existing.indicator == 2) {
+      if (existing.indicator === 2) {
         statusEl.textContent = "User already exists.";
         statusEl.classList.add("error");
         return;
       }
-      if (existing.indicator == 1) {
+      if (existing.indicator === 1) {
         statusEl.textContent = "Account already created. Please confirm your email.";
         statusEl.classList.add("error");
         return;
       }
     }
 
-    // 2️⃣ CREATE ACCOUNT → redirect directly to signin.html
     const { data, error } = await client.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html?type=signup&access_token=...&refresh_token=...
-",
+        emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html?type=signup",
         captchaToken: token
       }
     });
 
     if (error) {
-      console.error("Signup error:", error);
-      statusEl.textContent = "Signup error: " + (error.message || "Unknown error");
+      statusEl.textContent = "Signup error: " + error.message;
       statusEl.classList.add("error");
       return;
     }
@@ -77,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const uid = data.user.id;
     const referralCode = generateReferralCode();
 
-    // 3️⃣ INSERT INTO UsersSQL
     const { error: insertError } = await client.from("UsersSQL").insert({
       uid,
       email,
@@ -94,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (insertError) {
-      console.error("Insert error:", insertError);
       statusEl.textContent = "Database insert error: " + insertError.message;
       statusEl.classList.add("error");
       return;
@@ -105,7 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
     form.reset();
   }
 
-  // ⭐ ALWAYS generate a fresh token on submit
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -120,3 +113,4 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
