@@ -38,7 +38,7 @@
       }
 
       const { data: factors } = await client.auth.mfa.listFactors();
-      const totpFactor = factors.totp[0];
+      const totpFactor = factors.totp && factors.totp[0];
 
       if (!totpFactor) {
         msg.textContent = "2FA not enabled.";
@@ -61,4 +61,5 @@
   </script>
 </body>
 </html>
+
 
