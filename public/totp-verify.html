@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Verify 2FA Code</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Verify 2FA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
     input { padding:10px; font-size:18px; width:200px; text-align:center; }
@@ -13,9 +13,7 @@
 
 <body>
   <h1>Enter Your 2FA Code</h1>
-  <p>Open your authenticator app and enter the 6‑digit code.</p>
-
-  <input id="code" maxlength="6" />
+  <input id="code" maxlength="6">
   <br><br>
   <button onclick="verify()">Verify</button>
 
@@ -23,13 +21,10 @@
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- FIXED: correct otplib bundle -->
-  <script src="https://unpkg.com/otplib@12.0.1/bundle/otplib-browser.umd.min.js"></script>
-
   <script>
     const client = supabase.createClient(
       "https://fchwxnontbfybypezpge.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+      "YOUR_ANON_KEY"
     );
 
     async function verify() {
@@ -42,22 +37,22 @@
         return;
       }
 
-      const email = session.user.email;
+      // Get active TOTP factor
+      const { data: factors } = await client.auth.mfa.listFactors();
+      const totpFactor = factors.totp[0];
 
-      const { data: userRow } = await client
-        .from("UsersSQL")
-        .select("totp_secret")
-        .eq("email", email)
-        .single();
-
-      if (!userRow || !userRow.totp_secret) {
+      if (!totpFactor) {
         msg.textContent = "2FA not enabled.";
         return;
       }
 
-      const valid = otplib.authenticator.check(code, userRow.totp_secret);
+      // Verify code
+      const { error } = await client.auth.mfa.verify({
+        factorId: totpFactor.id,
+        code
+      });
 
-      if (!valid) {
+      if (error) {
         msg.textContent = "Invalid code.";
         return;
       }
