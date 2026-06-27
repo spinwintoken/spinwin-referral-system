@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Verify 2FA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
+    input { padding:10px; font-size:18px; width:200px; text-align:center; }
+    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+  </style>
+</head>
+
+<body>
+  <h1>Enter Your 2FA Code</h1>
+  <input id="code" maxlength="6">
+  <br><br>
+  <button onclick="verify()">Verify</button>
+
+  <p id="msg"></p>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "YOUR_ANON_KEY"
+    );
+
+    async function verify() {
+      const code = document.getElementById("code").value.trim();
+      const msg = document.getElementById("msg");
+
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        msg.textContent = "Please sign in first.";
+        return;
+      }
+
+      // Get active TOTP factor
+      const { data: factors } = await client.auth.mfa.listFactors();
+      const totpFactor = factors.totp[0];
+
+      if (!totpFactor) {
+        msg.textContent = "2FA not enabled.";
+        return;
+      }
+
+      // Verify code
+      const { error } = await client.auth.mfa.verify({
+        factorId: totpFactor.id,
+        code
+      });
+
+      if (error) {
+        msg.textContent = "Invalid code.";
+        return;
+      }
+
+      msg.textContent = "2FA Verified!";
+      setTimeout(() => window.location.href = "dashboard.html", 1500);
+    }
+  </script>
+</body>
+</html>
