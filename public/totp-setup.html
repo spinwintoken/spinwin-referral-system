@@ -1,34 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Setup 2FA (TOTP)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Setup 2FA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
     input { padding:10px; font-size:18px; width:200px; text-align:center; }
     button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
-    #qr { margin-top:20px; }
+    img { margin-top:20px; }
   </style>
 </head>
 
 <body>
   <h1>Two‑Factor Authentication Setup</h1>
-  <p>Scan the QR code with Google Authenticator or Authy.</p>
+  <p>Scan the QR code with Google Authenticator.</p>
 
-  <div id="qr"></div>
+  <img id="qr" />
 
   <p>Enter the 6‑digit code:</p>
-  <input id="code" maxlength="6" />
+  <input id="code" maxlength="6">
   <br><br>
-  <button onclick="verifyCode()">Verify & Enable 2FA</button>
+  <button onclick="verify()">Verify & Enable 2FA</button>
 
   <p id="msg"></p>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <!-- FIXED: load otplib locally -->
-  <script src="/js/otplib-browser.umd.min.js"></script>
 
   <script>
     const client = supabase.createClient(
@@ -36,7 +33,7 @@
       "YOUR_ANON_KEY"
     );
 
-    let secret = "";
+    let factorId = null;
 
     async function init() {
       const { data: { session } } = await client.auth.getSession();
@@ -45,33 +42,31 @@
         return;
       }
 
-      secret = otplib.authenticator.generateSecret();
+      // 1. Enroll TOTP factor
+      const { data: factor } = await client.auth.mfa.enroll({
+        factorType: "totp"
+      });
 
-      const otpauth = otplib.authenticator.keyuri(
-        session.user.email,
-        "SpinWinToken",
-        secret
-      );
+      factorId = factor.id;
 
-      const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(otpauth);
-      document.getElementById("qr").innerHTML = `<img src="${qrUrl}" />`;
+      // 2. Show QR code
+      document.getElementById("qr").src = factor.totp.qr_code;
     }
 
-    async function verifyCode() {
+    async function verify() {
       const code = document.getElementById("code").value.trim();
       const msg = document.getElementById("msg");
 
-      if (!otplib.authenticator.check(code, secret)) {
-        msg.textContent = "Invalid code. Try again.";
+      // 3. Verify TOTP code
+      const { data, error } = await client.auth.mfa.verify({
+        factorId,
+        code
+      });
+
+      if (error) {
+        msg.textContent = "Invalid code.";
         return;
       }
-
-      const { data: { session } } = await client.auth.getSession();
-      const email = session.user.email;
-
-      await client.from("UsersSQL")
-        .update({ totp_secret: secret, totp_enabled: true })
-        .eq("email", email);
 
       msg.textContent = "2FA Enabled!";
       setTimeout(() => window.location.href = "signin.html", 1500);
@@ -81,3 +76,4 @@
   </script>
 </body>
 </html>
+
