@@ -38,7 +38,7 @@
     async function init() {
       const { data: { session } } = await client.auth.getSession();
 
-      if (!session) {
+      if (!session || !session.user || !session.user.email) {
         document.getElementById("msg").textContent = "You are not signed in.";
         return;
       }
@@ -78,4 +78,5 @@
   </script>
 </body>
 </html>
+
 
