@@ -22,7 +22,9 @@
   <p id="msg"></p>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/otplib@12.0.1"></script>
+
+  <!-- FIXED: correct otplib browser bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/otplib@12.0.1/bundle/otplib-browser.umd.min.js"></script>
 
   <script>
     const client = supabase.createClient(
