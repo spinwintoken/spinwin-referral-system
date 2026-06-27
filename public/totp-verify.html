@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verify 2FA Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
+    input { padding:10px; font-size:18px; width:200px; text-align:center; }
+    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+  </style>
+</head>
+
+<body>
+  <h1>Enter Your 2FA Code</h1>
+  <p>Open your authenticator app and enter the 6‑digit code.</p>
+
+  <input id="code" maxlength="6" />
+  <br><br>
+  <button onclick="verify()">Verify</button>
+
+  <p id="msg"></p>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/otplib@12.0.1"></script>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    async function verify() {
+      const code = document.getElementById("code").value.trim();
+      const msg = document.getElementById("msg");
+
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        msg.textContent = "Please sign in first.";
+        return;
+      }
+
+      const email = session.user.email;
+
+      const { data: userRow } = await client
+        .from("UsersSQL")
+        .select("totp_secret")
+        .eq("email", email)
+        .single();
+
+      if (!userRow || !userRow.totp_secret) {
+        msg.textContent = "2FA not enabled.";
+        return;
+      }
+
+      const valid = otplib.authenticator.check(code, userRow.totp_secret);
+
+      if (!valid) {
+        msg.textContent = "Invalid code.";
+        return;
+      }
+
+      msg.textContent = "2FA Verified!";
+      setTimeout(() => window.location.href = "dashboard.html", 1500);
+    }
+  </script>
+</body>
+</html>
