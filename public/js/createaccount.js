@@ -61,7 +61,8 @@ document.addEventListener("DOMContentLoaded", () => {
       email,
       password,
       options: {
-        emailRedirectTo: "https://www.spinwintoken.com/signin.html",
+        emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html?type=signup&access_token=...&refresh_token=...
+",
         captchaToken: token
       }
     });
