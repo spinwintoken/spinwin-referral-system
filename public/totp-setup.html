@@ -1,79 +1,51 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Setup 2FA</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
-    input { padding:10px; font-size:18px; width:200px; text-align:center; }
-    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
-    img { margin-top:20px; }
-  </style>
-</head>
+<script>
+const client = supabase.createClient(
+  "https://fchwxnontbfybypezpge.supabase.co",
+  "YOUR_ANON_KEY"
+);
 
-<body>
-  <h1>Two‑Factor Authentication Setup</h1>
-  <p>Scan the QR code with Google Authenticator.</p>
+let factorId = null;
 
-  <img id="qr" />
+async function init() {
+  const { data: { session } } = await client.auth.getSession();
+  if (!session) {
+    document.getElementById("msg").textContent = "Please sign in first.";
+    return;
+  }
 
-  <p>Enter the 6‑digit code:</p>
-  <input id="code" maxlength="6">
-  <br><br>
-  <button onclick="verify()">Verify & Enable 2FA</button>
+  // 1. Enroll TOTP factor
+  const { data: factor, error } = await client.auth.mfa.enroll({
+    factorType: "totp"
+  });
 
-  <p id="msg"></p>
+  if (error) {
+    document.getElementById("msg").textContent = "Error enrolling factor.";
+    return;
+  }
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  factorId = factor.id;
 
-  <script>
-    const client = supabase.createClient(
-      "https://fchwxnontbfybypezpge.supabase.co",
-      "YOUR_ANON_KEY"
-    );
+  // 2. Display QR code
+  document.getElementById("qr").src = factor.totp.qr_code;
+}
 
-    let factorId = null;
+async function verify() {
+  const code = document.getElementById("code").value.trim();
+  const msg = document.getElementById("msg");
 
-    async function init() {
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) {
-        document.getElementById("msg").textContent = "Please sign in first.";
-        return;
-      }
+  const { data, error } = await client.auth.mfa.verify({
+    factorId,
+    code
+  });
 
-      // 1. Enroll TOTP factor
-      const { data: factor } = await client.auth.mfa.enroll({
-        factorType: "totp"
-      });
+  if (error) {
+    msg.textContent = "Invalid code.";
+    return;
+  }
 
-      factorId = factor.id;
+  msg.textContent = "2FA Enabled!";
+  setTimeout(() => window.location.href = "signin.html", 1500);
+}
 
-      // 2. Show QR code
-      document.getElementById("qr").src = factor.totp.qr_code;
-    }
-
-    async function verify() {
-      const code = document.getElementById("code").value.trim();
-      const msg = document.getElementById("msg");
-
-      // 3. Verify TOTP code
-      const { data, error } = await client.auth.mfa.verify({
-        factorId,
-        code
-      });
-
-      if (error) {
-        msg.textContent = "Invalid code.";
-        return;
-      }
-
-      msg.textContent = "2FA Enabled!";
-      setTimeout(() => window.location.href = "signin.html", 1500);
-    }
-
-    init();
-  </script>
-</body>
-</html>
-
+init();
+</script>
