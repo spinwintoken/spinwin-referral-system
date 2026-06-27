@@ -27,8 +27,8 @@
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- FIXED: correct otplib browser bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/otplib@12.0.1/bundle/otplib-browser.umd.min.js"></script>
+  <!-- FIXED: correct otplib bundle with correct MIME type -->
+  <script src="https://unpkg.com/otplib@12.0.1/bundle/otplib-browser.umd.min.js"></script>
 
   <script>
     const client = supabase.createClient(
