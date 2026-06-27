@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Setup 2FA (TOTP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
+    input { padding:10px; font-size:18px; width:200px; text-align:center; }
+    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+    #qr { margin-top:20px; }
+  </style>
+</head>
+
+<body>
+  <h1>Two‑Factor Authentication Setup</h1>
+  <p>Scan the QR code with Google Authenticator or Authy.</p>
+
+  <div id="qr"></div>
+
+  <p>Enter the 6‑digit code:</p>
+  <input id="code" maxlength="6" />
+  <br><br>
+  <button onclick="verifyCode()">Verify & Enable 2FA</button>
+
+  <p id="msg"></p>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/otplib@12.0.1"></script>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    let secret = "";
+
+    async function init() {
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) {
+        document.getElementById("msg").textContent = "Please sign in first.";
+        return;
+      }
+
+      secret = otplib.authenticator.generateSecret();
+
+      const otpauth = otplib.authenticator.keyuri(
+        session.user.email,
+        "SpinWinToken",
+        secret
+      );
+
+      const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(otpauth);
+      document.getElementById("qr").innerHTML = `<img src="${qrUrl}" />`;
+    }
+
+    async function verifyCode() {
+      const code = document.getElementById("code").value.trim();
+      const msg = document.getElementById("msg");
+
+      if (!otplib.authenticator.check(code, secret)) {
+        msg.textContent = "Invalid code. Try again.";
+        return;
+      }
+
+      const { data: { session } } = await client.auth.getSession();
+      const email = session.user.email;
+
+      await client.from("UsersSQL")
+        .update({ totp_secret: secret, totp_enabled: true })
+        .eq("email", email);
+
+      msg.textContent = "2FA Enabled!";
+      setTimeout(() => window.location.href = "signin.html", 1500);
+    }
+
+    init();
+  </script>
+</body>
+</html>
