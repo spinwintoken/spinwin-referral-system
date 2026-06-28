@@ -1,103 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Setup 2FA</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
-  input { padding:10px; font-size:18px; width:200px; text-align:center; }
-  button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
-  img { margin-top:20px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Setup 2FA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
+    input { padding:10px; font-size:18px; width:200px; text-align:center; }
+    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+    img { margin-top:20px; width:300px; height:300px; } /* bigger QR */
+  </style>
 </head>
 
 <body>
-<h1>Two-Factor Authentication Setup</h1>
-<p>Scan the QR code with Google Authenticator.</p>
+  <h1>Two-Factor Authentication Setup</h1>
+  <p>Scan the QR code with Google Authenticator.</p>
 
-<img id="qr" />
+  <img id="qr" />
 
-<p>Enter the 6-digit code:</p>
-<input id="code" maxlength="6">
-<br><br>
-<button onclick="verify()">Verify & Enable 2FA</button>
+  <p>Enter the 6-digit code:</p>
+  <input id="code" maxlength="6">
+  <br><br>
+  <button onclick="verify()">Verify & Enable 2FA</button>
 
-<p id="msg"></p>
+  <p id="msg"></p>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<script>
-const client = supabase.createClient(
-  "https://fchwxnontbfybypezpge.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
-);
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
 
-let factorId = null;
+    let factorId = null;
 
-/* ---------------------------
-   1. ENSURE USER IS LOGGED IN
----------------------------- */
-async function checkSession() {
-  const { data: { session } } = await client.auth.getSession();
+    async function checkSession() {
+      const { data: { session }, error } = await client.auth.getSession();
+      console.log("getSession:", { session, error });
 
-  if (!session) {
-    document.getElementById("msg").innerText = "You are not signed in.";
-    setTimeout(() => window.location.href = "signin.html", 1500);
-    return false;
-  }
+      if (!session) {
+        document.getElementById("msg").innerText = "You are not signed in.";
+        setTimeout(() => window.location.href = "signin.html", 1500);
+        return false;
+      }
+      return true;
+    }
 
-  return true;
-}
+    async function loadQR() {
+      const ok = await checkSession();
+      if (!ok) return;
 
-/* ---------------------------
-   2. ENROLL MFA + LOAD QR CODE
----------------------------- */
-async function loadQR() {
-  const ok = await checkSession();
-  if (!ok) return;
+      const { data, error } = await client.auth.mfa.enroll({
+        factorType: "totp"
+      });
 
-  const { data, error } = await client.auth.mfa.enroll({
-    factorType: "totp"
-  });
+      console.log("MFA enroll result:", { data, error });
 
-  if (error) {
-    document.getElementById("msg").innerText = error.message;
-    return;
-  }
+      if (error) {
+        document.getElementById("msg").innerText = error.message;
+        return;
+      }
 
-  factorId = data.id;
-  document.getElementById("qr").src = data.totp.qrCode;
-}
+      factorId = data.id;
+      document.getElementById("qr").src = data.totp.qrCode;
+    }
 
-/* ---------------------------
-   3. VERIFY THE 6-DIGIT CODE
----------------------------- */
-async function verify() {
-  const code = document.getElementById("code").value.trim();
+    async function verify() {
+      const code = document.getElementById("code").value.trim();
 
-  const { data, error } = await client.auth.mfa.verify({
-    factorId,
-    code
-  });
+      const { data, error } = await client.auth.mfa.verify({
+        factorId,
+        code
+      });
 
-  if (error) {
-    document.getElementById("msg").innerText = error.message;
-    return;
-  }
+      console.log("MFA verify result:", { data, error });
 
-  document.getElementById("msg").innerText = "2FA Enabled!";
-  setTimeout(() => window.location.href = "dashboard.html", 1500);
-}
+      if (error) {
+        document.getElementById("msg").innerText = error.message;
+        return;
+      }
 
-/* ---------------------------
-   START
----------------------------- */
-loadQR();
-</script>
+      document.getElementById("msg").innerText = "2FA Enabled!";
+      setTimeout(() => window.location.href = "dashboard.html", 1500);
+    }
 
+    loadQR();
+  </script>
 </body>
 </html>
+
 
 
 
