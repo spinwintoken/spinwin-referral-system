@@ -42,7 +42,7 @@ async function loadQR() {
     return;
   }
 
-  // DELETE OLD TOTP FACTOR
+  // REMOVE ANY EXISTING TOTP FACTOR
   const { data: factors } = await client.auth.mfa.listFactors();
   if (factors.totp.length > 0) {
     await client.auth.mfa.unenroll({ factorId: factors.totp[0].id });
@@ -61,7 +61,7 @@ async function loadQR() {
 
   factorId = data.id;
 
-  // SHOW QR CODE
+  // DISPLAY QR CODE
   const qrImg = document.getElementById("qr");
   qrImg.src = data.totp.qrCode;
   qrImg.alt = "QR Code Loaded";
@@ -88,6 +88,7 @@ loadQR();
 
 </body>
 </html>
+
 
 
 
