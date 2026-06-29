@@ -42,11 +42,13 @@ async function loadQR() {
     return;
   }
 
-  // REMOVE ANY EXISTING TOTP FACTOR
+  // REMOVE ALL EXISTING TOTP FACTORS
   const { data: factors } = await client.auth.mfa.listFactors();
   if (factors.totp.length > 0) {
-    await client.auth.mfa.unenroll({ factorId: factors.totp[0].id });
-    console.log("Old TOTP factor removed:", factors.totp[0].id);
+    for (const f of factors.totp) {
+      await client.auth.mfa.unenroll({ factorId: f.id });
+      console.log("Removed old TOTP factor:", f.id);
+    }
   }
 
   // ENROLL NEW TOTP FACTOR
@@ -88,6 +90,7 @@ loadQR();
 
 </body>
 </html>
+
 
 
 
