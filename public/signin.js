@@ -21,7 +21,7 @@ async function signin() {
   const { data: factors } = await client.auth.mfa.listFactors();
 
   if (!factors || !factors.totp || factors.totp.length === 0) {
-    window.location.href = "totp-setup.html";
+    window.location.href = "totp-setup2.html";
   } else {
     window.location.href = "totp-verify.html";
   }
