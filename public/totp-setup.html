@@ -8,7 +8,7 @@
   body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
   input { padding:10px; font-size:18px; width:200px; text-align:center; }
   button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
-  img { margin-top:20px; width:300px; height:300px; }
+  img { margin-top:20px; width:300px; height:300px; background:#111; }
 </style>
 </head>
 
@@ -60,7 +60,16 @@ async function loadQR() {
   }
 
   factorId = data.id;
-  document.getElementById("qr").src = data.totp.qrCode;
+
+  // DEBUG: show QR code string
+  console.log("QR CODE STRING:", data.totp.qrCode);
+
+  // FORCE the QR code to load
+  const qrImg = document.getElementById("qr");
+  qrImg.src = data.totp.qrCode;
+  qrImg.alt = "QR Code Loaded";
+
+  console.log("QR Code src set:", qrImg.src.substring(0, 50));
 }
 
 async function verify() {
@@ -86,6 +95,7 @@ loadQR();
 
 </body>
 </html>
+
 
 
 
