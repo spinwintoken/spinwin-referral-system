@@ -28,8 +28,6 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script>
-console.log("Supabase JS loaded:", typeof supabase);
-
 const client = supabase.createClient(
   "https://fchwxnontbfybypezpge.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
@@ -38,21 +36,23 @@ const client = supabase.createClient(
 let factorId = null;
 
 async function loadQR() {
-  console.log("Running loadQR()...");
-
-  const { data: { session }, error: sessionError } = await client.auth.getSession();
-  console.log("Session:", session, "Error:", sessionError);
-
+  const { data: { session } } = await client.auth.getSession();
   if (!session) {
     document.getElementById("msg").innerText = "You are not signed in.";
     return;
   }
 
+  // DELETE OLD TOTP FACTOR
+  const { data: factors } = await client.auth.mfa.listFactors();
+  if (factors.totp.length > 0) {
+    await client.auth.mfa.unenroll({ factorId: factors.totp[0].id });
+    console.log("Old TOTP factor removed:", factors.totp[0].id);
+  }
+
+  // ENROLL NEW TOTP FACTOR
   const { data, error } = await client.auth.mfa.enroll({
     factorType: "totp"
   });
-
-  console.log("Enroll result:", data, error);
 
   if (error) {
     document.getElementById("msg").innerText = error.message;
@@ -61,15 +61,10 @@ async function loadQR() {
 
   factorId = data.id;
 
-  // DEBUG: show QR code string
-  console.log("QR CODE STRING:", data.totp.qrCode);
-
-  // FORCE the QR code to load
+  // SHOW QR CODE
   const qrImg = document.getElementById("qr");
   qrImg.src = data.totp.qrCode;
   qrImg.alt = "QR Code Loaded";
-
-  console.log("QR Code src set:", qrImg.src.substring(0, 50));
 }
 
 async function verify() {
@@ -79,8 +74,6 @@ async function verify() {
     factorId,
     code
   });
-
-  console.log("Verify result:", data, error);
 
   if (error) {
     document.getElementById("msg").innerText = error.message;
