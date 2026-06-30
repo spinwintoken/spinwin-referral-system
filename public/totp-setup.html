@@ -100,7 +100,7 @@ async function verify() {
   document.getElementById("msg").innerText = "2FA Enabled!";
 }
 
-loadQR();
+document.addEventListener("DOMContentLoaded", loadQR);
 </script>
 
 </body>
