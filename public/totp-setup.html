@@ -39,12 +39,30 @@ async function loadQR() {
     return;
   }
 
-  // ⭐ REMOVE ALL EXISTING TOTP FACTORS (new Supabase API format)
-  const { data: factors } = await client.auth.mfa.listFactors();
-  for (const f of factors.all) {
-    if (f.factor_type === "totp") {
-      await client.auth.mfa.unenroll({ factorId: f.id });
-      console.log("Removed old TOTP factor:", f.id);
+  // ⭐ GET FACTORS (old or new format)
+  const { data: factors, error: factorsError } = await client.auth.mfa.listFactors();
+
+  if (factorsError) {
+    document.getElementById("msg").innerText = factorsError.message;
+    return;
+  }
+
+  // ⭐ SAFELY DELETE ALL TOTP FACTORS (old + new API)
+  if (factors) {
+    // NEW FORMAT: factors.all
+    if (Array.isArray(factors.all)) {
+      for (const f of factors.all) {
+        if (f.factor_type === "totp") {
+          await client.auth.mfa.unenroll({ factorId: f.id });
+        }
+      }
+    }
+
+    // OLD FORMAT: factors.totp
+    if (Array.isArray(factors.totp)) {
+      for (const f of factors.totp) {
+        await client.auth.mfa.unenroll({ factorId: f.id });
+      }
     }
   }
 
@@ -82,12 +100,12 @@ async function verify() {
   document.getElementById("msg").innerText = "2FA Enabled!";
 }
 
-// ⭐ CALL THE FUNCTION
 loadQR();
 </script>
 
 </body>
 </html>
+
 
 
 
