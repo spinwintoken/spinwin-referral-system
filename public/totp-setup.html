@@ -5,24 +5,21 @@
 <title>Setup 2FA</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
+  body { background:#000; color:#ff7000; font-family:Arial; text-align:center; padding:40px; }
   input { padding:10px; font-size:18px; width:200px; text-align:center; }
-  button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+  button { padding:10px 20px; font-size:18px; background:#ff7000; border:none; cursor:pointer; }
   img { margin-top:20px; width:300px; height:300px; background:#111; }
 </style>
 </head>
-
 <body>
+
 <h1>Two-Factor Authentication Setup</h1>
 <p>Scan the QR code with Google Authenticator.</p>
-
 <img id="qr" />
-
 <p>Enter the 6-digit code:</p>
 <input id="code" maxlength="6">
 <br><br>
 <button onclick="verify()">Verify & Enable 2FA</button>
-
 <p id="msg"></p>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -30,7 +27,7 @@
 <script>
 const client = supabase.createClient(
   "https://fchwxnontbfybypezpge.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+  "YOUR_ANON_KEY_HERE"
 );
 
 let factorId = null;
@@ -42,16 +39,16 @@ async function loadQR() {
     return;
   }
 
-  // REMOVE ALL EXISTING TOTP FACTORS
+  // ⭐ REMOVE ALL EXISTING TOTP FACTORS (new Supabase API format)
   const { data: factors } = await client.auth.mfa.listFactors();
-  if (factors.totp.length > 0) {
-    for (const f of factors.totp) {
+  for (const f of factors.all) {
+    if (f.factor_type === "totp") {
       await client.auth.mfa.unenroll({ factorId: f.id });
       console.log("Removed old TOTP factor:", f.id);
     }
   }
 
-  // ENROLL NEW TOTP FACTOR
+  // ⭐ ENROLL NEW TOTP FACTOR
   const { data, error } = await client.auth.mfa.enroll({
     factorType: "totp"
   });
@@ -63,7 +60,7 @@ async function loadQR() {
 
   factorId = data.id;
 
-  // DISPLAY QR CODE
+  // ⭐ DISPLAY QR CODE (new API field)
   const qrImg = document.getElementById("qr");
   qrImg.src = data.qr_code;
   qrImg.alt = "QR Code Loaded";
@@ -85,11 +82,13 @@ async function verify() {
   document.getElementById("msg").innerText = "2FA Enabled!";
 }
 
+// ⭐ CALL THE FUNCTION
 loadQR();
 </script>
 
 </body>
 </html>
+
 
 
 
