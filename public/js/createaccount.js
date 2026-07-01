@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
 
   const client = supabase.createClient(
-    "https://arzakrybvbyigixmudxf.supabase.co",
-    "sb_publishable_SO2z1VL6F8U477a7QzcAzw_75Np1C0x"
+   "https://fchwxnontbfybypezpge.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
   );
 
   const form = document.getElementById("createAccountForm");
