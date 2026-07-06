@@ -5,8 +5,10 @@
   <title>Create Account - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+  <!-- reCAPTCHA -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
   <script>
     async function refreshRecaptchaToken() {
@@ -28,13 +30,7 @@
     input { width:100%; padding:10px; margin-top:6px; background:#222; border:1px solid #ffd700; border-radius:6px; color:#ffd700; }
     button { margin-top:20px; padding:12px; width:100%; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
 
-    .message {
-      margin-top: 20px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      text-align: center;
-    }
-
+    .message { margin-top:20px; font-size:1.6rem; font-weight:bold; text-align:center; }
     .error { color:#ff4d4d; }
     .success { color:#00ff88; }
 
@@ -72,7 +68,8 @@
   </div>
 
   <script>
-    const supabase = supabase.createClient(...)
+    /* ✅ Correct Supabase client */
+    const supabase = supabase.createClient(
       "https://nloupcyqrgnrcsxcmzqf.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sb3VwY3lxcmducmNzeGNtenFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNzM0MzYsImV4cCI6MjA5ODg0OTQzNn0.BlhkyZ3Ud6TDK-lXZ_zWG_XkIn1lFmQoUQBNxgtgt-g"
     );
@@ -80,6 +77,7 @@
     const form = document.getElementById("createAccountForm");
     const statusEl = document.getElementById("status");
 
+    /* Referral code */
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get("ref") || "SPINROOT";
     document.getElementById("refInfo").textContent = "Referral: " + ref;
@@ -108,31 +106,28 @@
         return;
       }
 
-      // 1️⃣ CHECK IF EMAIL EXISTS
-      const { data: existing } = await client
+      /* 1️⃣ CHECK IF EMAIL EXISTS */
+      const { data: existing } = await supabase
         .from("UsersSQL")
         .select("indicator")
         .eq("email", email)
         .maybeSingle();
 
       if (existing) {
-        const ind = existing.indicator;
-
-        if (ind == 2) {
+        if (existing.indicator == 2) {
           statusEl.textContent = "User already exists.";
           statusEl.classList.add("error");
           return;
         }
-
-        if (ind == 1) {
+        if (existing.indicator == 1) {
           statusEl.textContent = "Account already created. Please confirm your email.";
           statusEl.classList.add("error");
           return;
         }
       }
 
-      // 2️⃣ CREATE ACCOUNT
-      const { data, error } = await client.auth.signUp({
+      /* 2️⃣ CREATE ACCOUNT */
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -150,8 +145,8 @@
       const uid = data.user.id;
       const referralCode = generateReferralCode();
 
-      // 3️⃣ INSERT INTO UsersSQL
-      await client.from("UsersSQL").insert({
+      /* 3️⃣ INSERT INTO UsersSQL */
+      await supabase.from("UsersSQL").insert({
         uid,
         email,
         indicator: 1,
@@ -178,3 +173,4 @@
   </script>
 </body>
 </html>
+
