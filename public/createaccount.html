@@ -68,8 +68,8 @@
   </div>
 
   <script>
-    /* ✅ Correct Supabase client */
-    const supabase = supabase.createClient(
+    /* ⭐ Correct Supabase client — NO redeclaration */
+    const supabase = window.supabase.createClient(
       "https://nloupcyqrgnrcsxcmzqf.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sb3VwY3lxcmducmNzeGNtenFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNzM0MzYsImV4cCI6MjA5ODg0OTQzNn0.BlhkyZ3Ud6TDK-lXZ_zWG_XkIn1lFmQoUQBNxgtgt-g"
     );
@@ -173,4 +173,5 @@
   </script>
 </body>
 </html>
+
 
