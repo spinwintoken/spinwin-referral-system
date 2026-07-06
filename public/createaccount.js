@@ -50,3 +50,4 @@ form.addEventListener('submit', async (e) => {
   window.location.href = 'registerconfirm.html';
 });
 
+
