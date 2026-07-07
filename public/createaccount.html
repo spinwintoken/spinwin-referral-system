@@ -5,9 +5,6 @@
   <title>Create Account - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase -->
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
   <!-- reCAPTCHA -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
   <script>
@@ -67,108 +64,121 @@
     <div id="status" class="message"></div>
   </div>
 
-  <script>
-    /* ⭐ Correct Supabase client — NO redeclaration */
-    const supabase = window.supabase.createClient(
-      "https://nloupcyqrgnrcsxcmzqf.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sb3VwY3lxcmducmNzeGNtenFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNzM0MzYsImV4cCI6MjA5ODg0OTQzNn0.BlhkyZ3Ud6TDK-lXZ_zWG_XkIn1lFmQoUQBNxgtgt-g"
-    );
+  <!-- Supabase via ES module -->
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    const form = document.getElementById("createAccountForm");
-    const statusEl = document.getElementById("status");
+    const SUPABASE_URL = 'https://nloupcyqrgnrcsxcmzqf.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT';
 
-    /* Referral code */
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('createAccountForm');
+    const statusEl = document.getElementById('status');
+
     const urlParams = new URLSearchParams(window.location.search);
-    const ref = urlParams.get("ref") || "SPINROOT";
-    document.getElementById("refInfo").textContent = "Referral: " + ref;
+    const ref = urlParams.get('ref') || 'SPINROOT';
+    document.getElementById('refInfo').textContent = 'Referral: ' + ref;
 
     function generateReferralCode() {
-      return "SW" + Date.now().toString(36).toUpperCase();
+      return 'SW' + Date.now().toString(36).toUpperCase();
     }
 
     async function completeSignup(token) {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
 
-      statusEl.textContent = "";
-      statusEl.className = "message";
+      statusEl.textContent = '';
+      statusEl.className = 'message';
 
       if (!token) {
-        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
-        statusEl.classList.add("error");
+        statusEl.textContent = 'reCAPTCHA failed. Please refresh the page.';
+        statusEl.classList.add('error');
         return;
       }
 
       if (password !== confirmPassword) {
-        statusEl.textContent = "Passwords do not match.";
-        statusEl.classList.add("error");
+        statusEl.textContent = 'Passwords do not match.';
+        statusEl.classList.add('error');
         return;
       }
 
-      /* 1️⃣ CHECK IF EMAIL EXISTS */
-      const { data: existing } = await supabase
-        .from("UsersSQL")
-        .select("indicator")
-        .eq("email", email)
+      const { data: existing, error: existingError } = await supabase
+        .from('UsersSQL')
+        .select('indicator')
+        .eq('email', email)
         .maybeSingle();
 
+      if (existingError) {
+        statusEl.textContent = 'Error checking user: ' + existingError.message;
+        statusEl.classList.add('error');
+        return;
+      }
+
       if (existing) {
-        if (existing.indicator == 2) {
-          statusEl.textContent = "User already exists.";
-          statusEl.classList.add("error");
+        if (existing.indicator === 2) {
+          statusEl.textContent = 'User already exists.';
+          statusEl.classList.add('error');
           return;
         }
-        if (existing.indicator == 1) {
-          statusEl.textContent = "Account already created. Please confirm your email.";
-          statusEl.classList.add("error");
+        if (existing.indicator === 1) {
+          statusEl.textContent = 'Account already created. Please confirm your email.';
+          statusEl.classList.add('error');
           return;
         }
       }
 
-      /* 2️⃣ CREATE ACCOUNT */
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html",
+          emailRedirectTo: 'https://spinwintoken.com/registerconfirm.html',
           captchaToken: token
         }
       });
 
       if (error) {
-        statusEl.textContent = "Signup error: " + error.message;
-        statusEl.classList.add("error");
+        statusEl.textContent = 'Signup error: ' + error.message;
+        statusEl.classList.add('error');
         return;
       }
 
       const uid = data.user.id;
       const referralCode = generateReferralCode();
 
-      /* 3️⃣ INSERT INTO UsersSQL */
-      await supabase.from("UsersSQL").insert({
-        uid,
-        email,
-        indicator: 1,
-        referralcode: referralCode,
-        referred_by: ref,
-        teammembers: 0,
-        teamtoken: 0,
-        teamtokenpurchased: 0,
-        teamtokenavailable: 0,
-        maxtoken: 10,
-        totp_secret: null,
-        totp_enabled: false
-      });
+      const { error: insertError } = await supabase
+        .from('UsersSQL')
+        .insert({
+          uid,
+          email,
+          indicator: 1,
+          referralcode: referralCode,
+          referred_by: ref,
+          teammembers: 0,
+          teamtoken: 0,
+          teamtokenpurchased: 0,
+          teamtokenavailable: 0,
+          maxtoken: 10,
+          totp_secret: null,
+          totp_enabled: false
+        });
 
-      statusEl.textContent = "Account created. Please check your email to confirm.";
-      statusEl.classList.add("success");
+      if (insertError) {
+        statusEl.textContent =
+          'Signup ok, but profile insert failed: ' + insertError.message;
+        statusEl.classList.add('error');
+        return;
+      }
+
+      statusEl.textContent = 'Account created. Please check your email to confirm.';
+      statusEl.classList.add('success');
       form.reset();
     }
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener('submit', (e) => {
       e.preventDefault();
-      completeSignup(document.getElementById("recaptchaToken").value);
+      completeSignup(document.getElementById('recaptchaToken').value);
     });
   </script>
 </body>
