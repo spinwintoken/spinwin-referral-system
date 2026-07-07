@@ -169,7 +169,7 @@
     }
 
     /* ------------------------------
-       BEST COOLDOWN SYSTEM
+       BEST COOLDOWN SYSTEM (MERGED)
     ------------------------------ */
 
     let cooldown = false;
@@ -183,14 +183,24 @@
 
       const interval = setInterval(() => {
         seconds--;
-        statusEl.textContent = `Please wait ${seconds}s before trying again.`;
+
+        // Only show countdown if no success/error message
+        if (!statusEl.classList.contains("success") &&
+            !statusEl.classList.contains("error")) {
+          statusEl.textContent = `Please wait ${seconds}s before trying again.`;
+        }
 
         if (seconds <= 0) {
           clearInterval(interval);
           cooldown = false;
 
           btn.disabled = false;
-          statusEl.textContent = '';
+
+          // Only clear countdown if no success/error message
+          if (!statusEl.classList.contains("success") &&
+              !statusEl.classList.contains("error")) {
+            statusEl.textContent = '';
+          }
         }
       }, 1000);
     }
