@@ -113,27 +113,21 @@
 
       document.getElementById("emailDisplay").textContent = "Email: " + email;
 
-      // 1) Attach UID first so RLS allows subsequent SELECTs
-      const { error: uidUpdateError } = await client
+      // Attach UID first so RLS allows SELECT
+      await client
         .from("UsersSQL")
         .update({ uid })
         .eq("email", email);
 
-      if (uidUpdateError) {
-        msg.textContent = "Could not finalize account (UID update). Please sign in.";
-        signinBtn.style.display = "inline-block";
-        return;
-      }
-
-      // 2) Now we can safely SELECT the user row
-      const { data: userRow, error: selectError } = await client
+      // Now SELECT works
+      const { data: userRow } = await client
         .from("UsersSQL")
         .select("*")
         .eq("email", email)
         .single();
 
-      if (selectError || !userRow) {
-        msg.textContent = "User record not found. Please sign in.";
+      if (!userRow) {
+        msg.textContent = "User record not found.";
         signinBtn.style.display = "inline-block";
         return;
       }
@@ -142,38 +136,27 @@
       document.getElementById("refDisplay").textContent =
         "Referred By: " + (referrerCode || "None");
 
-      // 3) Set indicator = 2 (confirmed)
-      const { error: indicatorError } = await client
+      // Set indicator = 2
+      await client
         .from("UsersSQL")
         .update({ indicator: 2 })
         .eq("email", email);
 
-      if (indicatorError) {
-        msg.textContent = "Could not finalize account (indicator). Please sign in.";
-        signinBtn.style.display = "inline-block";
-        return;
-      }
-
-      // 4) Referral logic: increment teammembers for the referrer, if any
+      // Referral increment
       if (referrerCode) {
-        // Find the referrer row by its referral code
-        const { data: referrerRow, error: refSelectError } = await client
+        const { data: referrerRow } = await client
           .from("UsersSQL")
           .select("email, teammembers")
           .eq("referralcode", referrerCode)
           .single();
 
-        if (!refSelectError && referrerRow) {
+        if (referrerRow) {
           const currentTeam = Number(referrerRow.teammembers) || 0;
-          const { error: refUpdateError } = await client
+
+          await client
             .from("UsersSQL")
             .update({ teammembers: currentTeam + 1 })
             .eq("email", referrerRow.email);
-
-          // If referral update fails, we still let the user proceed
-          if (refUpdateError) {
-            console.warn("Referral update failed:", refUpdateError.message);
-          }
         }
       }
 
@@ -185,3 +168,4 @@
   </script>
 </body>
 </html>
+
