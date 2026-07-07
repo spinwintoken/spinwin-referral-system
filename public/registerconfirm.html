@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account Confirmed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 60px;
+      margin: 0;
+    }
+    .box {
+      background: #111;
+      padding: 40px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 480px;
+      margin: auto;
+      border: 1px solid #ffd700;
+    }
+    p {
+      font-size: 18px;
+      color: #fff;
+      margin: 10px 0;
+    }
+    .out {
+      margin-top: 12px;
+      color: #00ffea;
+      font-size: 16px;
+    }
+    .btn {
+      margin-top: 25px;
+      padding: 12px 20px;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover {
+      background: #e6c200;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h1>Account Confirmed</h1>
+    <p id="msg">Finalizing your account...</p>
+
+    <p id="emailDisplay" class="out"></p>
+    <p id="refDisplay" class="out"></p>
+
+    <a href="signin.html" id="signinBtn" class="btn" style="display:none;">Sign In</a>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <script>
+    const supabaseUrl = "https://nloupcyqrgnrcsxcmzqf.supabase.co";
+    const supabaseKey = "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT";
+
+    const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function finalizeAccount() {
+      const msg = document.getElementById("msg");
+      const signinBtn = document.getElementById("signinBtn");
+
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+
+      const access_token =
+        hashParams.get("access_token") || queryParams.get("access_token");
+      const refresh_token =
+        hashParams.get("refresh_token") || queryParams.get("refresh_token");
+
+      if (!access_token || !refresh_token) {
+        msg.textContent = "Invalid or expired confirmation link. Please sign in.";
+        signinBtn.style.display = "inline-block";
+        return;
+      }
+
+      const { error: sessionError } = await client.auth.setSession({
+        access_token,
+        refresh_token
+      });
+
+      if (sessionError) {
+        msg.textContent = "Unable to set session. Please sign in.";
+        signinBtn.style.display = "inline-block";
+        return;
+      }
+
+      const { data: { session } } = await client.auth.getSession();
+
+      if (!session) {
+        msg.textContent = "Unable to load your session. Please sign in.";
+        signinBtn.style.display = "inline-block";
+        return;
+      }
+
+      const email = session.user.email;
+      const uid = session.user.id;
+
+      document.getElementById("emailDisplay").textContent = "Email: " + email;
+
+      // 1) Attach UID first so RLS allows subsequent SELECTs
+      const { error: uidUpdateError } = await client
+        .from("UsersSQL")
+        .update({ uid })
+        .eq("email", email);
+
+      if (uidUpdateError) {
+        msg.textContent = "Could not finalize account (UID update). Please sign in.";
+        signinBtn.style.display = "inline-block";
+        return;
+      }
+
+      // 2) Now we can safely SELECT the user row
+      const { data: userRow, error: selectError } = await client
+        .from("UsersSQL")
+        .select("*")
+        .eq("email", email)
+        .single();
+
+      if (selectError || !userRow) {
+        msg.textContent = "User record not found. Please sign in.";
+        signinBtn.style.display = "inline-block";
+        return;
+      }
+
+      const referrerCode = userRow.referred_by;
+      document.getElementById("refDisplay").textContent =
+        "Referred By: " + (referrerCode || "None");
+
+      // 3) Set indicator = 2 (confirmed)
+      const { error: indicatorError } = await client
+        .from("UsersSQL")
+        .update({ indicator: 2 })
+        .eq("email", email);
+
+      if (indicatorError) {
+        msg.textContent = "Could not finalize account (indicator). Please sign in.";
+        signinBtn.style.display = "inline-block";
+        return;
+      }
+
+      // 4) Referral logic: increment teammembers for the referrer, if any
+      if (referrerCode) {
+        // Find the referrer row by its referral code
+        const { data: referrerRow, error: refSelectError } = await client
+          .from("UsersSQL")
+          .select("email, teammembers")
+          .eq("referralcode", referrerCode)
+          .single();
+
+        if (!refSelectError && referrerRow) {
+          const currentTeam = Number(referrerRow.teammembers) || 0;
+          const { error: refUpdateError } = await client
+            .from("UsersSQL")
+            .update({ teammembers: currentTeam + 1 })
+            .eq("email", referrerRow.email);
+
+          // If referral update fails, we still let the user proceed
+          if (refUpdateError) {
+            console.warn("Referral update failed:", refUpdateError.message);
+          }
+        }
+      }
+
+      msg.textContent = "Your email has been verified successfully!";
+      signinBtn.style.display = "inline-block";
+    }
+
+    finalizeAccount();
+  </script>
+</body>
+</html>
