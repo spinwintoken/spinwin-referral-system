@@ -1,116 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Create Account</title>
+  <meta charset="UTF-8" />
+  <title>Create Account - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-}
-input {
-  display: block;
-  margin-bottom: 10px;
-  padding: 8px;
-  width: 280px;
-}
-button {
-  padding: 10px 20px;
-}
-#msg {
-  margin-top: 15px;
-  color: red;
-}
-</style>
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+  <script>
+    async function refreshRecaptchaToken() {
+      const token = await grecaptcha.execute(
+        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+        { action: "submit" }
+      );
+      document.getElementById("recaptchaToken").value = token;
+    }
+    grecaptcha.ready(refreshRecaptchaToken);
+    setInterval(refreshRecaptchaToken, 120000);
+  </script>
+
+  <style>
+    body { font-family: Arial; background:#000; color:#ffd700; padding:40px; margin:0; }
+    .container { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { text-align:center; margin-bottom:25px; color:#ffd700; }
+    label { display:block; margin-top:12px; font-weight:bold; }
+    input { width:100%; padding:10px; margin-top:6px; background:#222; border:1px solid #ffd700; border-radius:6px; color:#ffd700; }
+    button { margin-top:20px; padding:12px; width:100%; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+
+    /* BIG, BOLD MESSAGES */
+    .message {
+      margin-top: 20px;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .error { color:#ff4d4d; }
+    .success { color:#00ff88; }
+
+    .link { margin-top:18px; text-align:center; }
+    .link a { color:#00aaff; text-decoration:none; font-weight:bold; }
+  </style>
 </head>
 
 <body>
-<h2>Create Account</h2>
+  <div class="container">
+    <h1>Create Account</h1>
 
-<input id="email" type="email" placeholder="Email" />
-<input id="password" type="password" placeholder="Password" />
-<input id="referralcode" type="text" placeholder="Referral Code (optional)" />
+    <form id="createAccountForm">
+      <input type="hidden" id="recaptchaToken">
 
-<button id="createBtn">Create Account</button>
+      <label>Email</label>
+      <input type="email" id="email" required />
 
-<div id="msg"></div>
+      <label>Password</label>
+      <input type="password" id="password" required minlength="6" />
 
-<script>
-const supabase = supabase.createClient(
-  "https://nloupcyqrgnrcsxcmzqf.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sb3VwY3lxcmducmNzeGNtenFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNzM0MzYsImV4cCI6MjA5ODg0OTQzNn0.BlhkyZ3Ud6TDK-lXZ_zWG_XkIn1lFmQoUQBNxgtgt-g"
-);
+      <label>Confirm Password</label>
+      <input type="password" id="confirmPassword" required minlength="6" />
 
-document.getElementById("createBtn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
-  const referralcode = document.getElementById("referralcode").value.trim();
-  const msg = document.getElementById("msg");
+      <div id="refInfo" class="message" style="font-size:1rem; font-weight:normal;"></div>
 
-  msg.textContent = "";
+      <button type="submit">Create Account</button>
+    </form>
 
-  if (!email || !password) {
-    msg.textContent = "Email and password required.";
-    return;
-  }
+    <div class="link">
+      Already have an account? <a href="signin.html">Sign In</a>
+    </div>
 
-  // 1. Check if email already exists
-  const { data: existingUser, error: checkError } = await supabase
-    .from("UsersSQL")
-    .select("email")
-    .eq("email", email)
-    .maybeSingle();
+    <div id="status" class="message"></div>
+  </div>
 
-  if (checkError) {
-    msg.textContent = "Error checking email.";
-    return;
-  }
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
 
-  if (existingUser) {
-    msg.textContent = "This email already exists.";
-    return;
-  }
+    const form = document.getElementById("createAccountForm");
+    const statusEl = document.getElementById("status");
 
-  // 2. Create Supabase Auth user
-  const { data: signupData, error: signupError } = await supabase.auth.signUp({
-    email,
-    password
-  });
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get("ref") || "SPINROOT";
+    document.getElementById("refInfo").textContent = "Referral: " + ref;
 
-  if (signupError) {
-    msg.textContent = "Signup failed: " + signupError.message;
-    return;
-  }
+    function generateReferralCode() {
+      return "SW" + Date.now().toString(36).toUpperCase();
+    }
 
-  const uid = signupData.user.id;
+    async function completeSignup(token) {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
 
-  // 3. Insert into UsersSQL
-  const { error: insertError } = await supabase.from("UsersSQL").insert({
-    uid,
-    email,
-    referralcode: referralcode || null,
-    referred_by: referralcode || null,
-    teammembers: 0,
-    teamtoken: 0,
-    teamtokenpurchased: 0,
-    teamtokenavailable: 0,
-    maxtoken: 0
-  });
+      statusEl.textContent = "";
+      statusEl.className = "message";
 
-  if (insertError) {
-    msg.textContent = "Database insert failed.";
-    return;
-  }
+      if (!token) {
+        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
+        statusEl.classList.add("error");
+        return;
+      }
 
-  // 4. Redirect to confirmation page
-  window.location.href = "registerconfirm.html";
-});
-</script>
+      if (password !== confirmPassword) {
+        statusEl.textContent = "Passwords do not match.";
+        statusEl.classList.add("error");
+        return;
+      }
 
+      // ⭐ 1️⃣ CHECK IF EMAIL EXISTS
+      const { data: existing } = await client
+        .from("UsersSQL")
+        .select("indicator")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existing) {
+        const ind = existing.indicator;
+
+        if (ind == 2) {
+          statusEl.textContent = "User already exists.";
+          statusEl.classList.add("error");
+          return;  // STOP
+        }
+
+        if (ind == 1) {
+          statusEl.textContent = "Account already created. Please confirm your email.";
+          statusEl.classList.add("error");
+          return;  // STOP
+        }
+      }
+
+      // ⭐ 2️⃣ CREATE ACCOUNT
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html",
+          captchaToken: token
+        }
+      });
+
+      if (error) {
+        statusEl.textContent = "Signup error: " + error.message;
+        statusEl.classList.add("error");
+        return;
+      }
+
+      const uid = data.user.id;
+      const referralCode = generateReferralCode();
+
+      // ⭐ 3️⃣ INSERT INTO UsersSQL
+      await client.from("UsersSQL").insert({
+        uid,
+        email,
+        indicator: 1,
+        referralcode: referralCode,
+        referred_by: ref,
+        teammembers: 0,
+        teamtoken: 0,
+        teamtokenpurchased: 0,
+        teamtokenavailable: 0,
+        maxtoken: 10,
+        totp_secret: null,
+        totp_enabled: false
+      });
+
+      statusEl.textContent = "Account created. Please check your email to confirm.";
+      statusEl.classList.add("success");
+      form.reset();
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      completeSignup(document.getElementById("recaptchaToken").value);
+    });
+  </script>
 </body>
 </html>
 
