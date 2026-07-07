@@ -66,15 +66,18 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <script>
+    /* ⭐ Correct Supabase project */
     const supabaseUrl = "https://nloupcyqrgnrcsxcmzqf.supabase.co";
-    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sb3VwY3lxcmducmNzeGNtenFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNzM0MzYsImV4cCI6MjA5ODg0OTQzNn0.BlhkyZ3Ud6TDK-lXZ_zWG_XkIn1lFmQoUQBNxgtgt-g";
+
+    /* ⭐ Correct publishable anon key (the ONLY valid key) */
+    const supabaseKey = "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT";
 
     const client = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     async function finalizeAccount() {
       const msg = document.getElementById("msg");
 
-      // ⭐ Extract tokens from BOTH hash and query
+      /* ⭐ Extract tokens from BOTH hash and query */
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const queryParams = new URLSearchParams(window.location.search);
 
@@ -89,7 +92,7 @@
         return;
       }
 
-      // ⭐ Hydrate session
+      /* ⭐ Hydrate session */
       await client.auth.setSession({
         access_token,
         refresh_token
@@ -106,7 +109,7 @@
       const email = session.user.email;
       document.getElementById("emailDisplay").textContent = "Email: " + email;
 
-      // ⭐ Load user row
+      /* ⭐ Load user row */
       const { data: userRow } = await client
         .from("UsersSQL")
         .select("*")
@@ -123,13 +126,13 @@
       document.getElementById("refDisplay").textContent =
         "Referred By: " + referrerCode;
 
-      // ⭐ Set indicator = 2
+      /* ⭐ Set indicator = 2 */
       await client
         .from("UsersSQL")
         .update({ indicator: 2 })
         .eq("email", email);
 
-      // ⭐ Calculate new teammembers
+      /* ⭐ Calculate new teammembers */
       const { data: refRows } = await client
         .from("UsersSQL")
         .select("teammembers")
@@ -143,7 +146,7 @@
       const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
       const newTeamCount = maxTeam + 1;
 
-      // ⭐ Update teammembers
+      /* ⭐ Update teammembers */
       await client
         .from("UsersSQL")
         .update({ teammembers: newTeamCount })
@@ -157,3 +160,4 @@
   </script>
 </body>
 </html>
+
