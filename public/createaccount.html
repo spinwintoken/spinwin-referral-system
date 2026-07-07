@@ -80,8 +80,9 @@
     const ref = urlParams.get('ref') || 'SPINROOT';
     document.getElementById('refInfo').textContent = 'Referral: ' + ref;
 
+    /* ⭐ FIXED-LENGTH REFERRAL CODE (8 CHARACTERS) */
     function generateReferralCode() {
-      return 'SW' + Date.now().toString(36).toUpperCase();
+      return "SW" + Math.random().toString(36).substring(2, 8).toUpperCase();
     }
 
     async function completeSignup(token) {
@@ -183,5 +184,6 @@
   </script>
 </body>
 </html>
+
 
 
