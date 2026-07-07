@@ -168,56 +168,20 @@
       form.reset();
     }
 
-    /* ------------------------------
-       BEST COOLDOWN SYSTEM (MERGED)
-    ------------------------------ */
-
-    let cooldown = false;
-
-    function startCooldown() {
-      cooldown = true;
-      let seconds = 40;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
       const btn = form.querySelector("button[type='submit']");
       btn.disabled = true;
 
-      const interval = setInterval(() => {
-        seconds--;
-
-        // Only show countdown if no success/error message
-        if (!statusEl.classList.contains("success") &&
-            !statusEl.classList.contains("error")) {
-          statusEl.textContent = `Please wait ${seconds}s before trying again.`;
-        }
-
-        if (seconds <= 0) {
-          clearInterval(interval);
-          cooldown = false;
-
-          btn.disabled = false;
-
-          // Only clear countdown if no success/error message
-          if (!statusEl.classList.contains("success") &&
-              !statusEl.classList.contains("error")) {
-            statusEl.textContent = '';
-          }
-        }
-      }, 1000);
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      if (cooldown) return;
-
-      startCooldown();
-
-      // Force fresh reCAPTCHA token before signup
       await refreshRecaptchaToken();
       const token = document.getElementById('recaptchaToken').value;
 
       await completeSignup(token);
+
+      btn.disabled = false;
     });
   </script>
 </body>
 </html>
+
