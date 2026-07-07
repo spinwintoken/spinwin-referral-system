@@ -3,23 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <title>Sign In</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
+    input { padding:10px; font-size:18px; width:250px; }
+    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+  </style>
 </head>
+
 <body>
   <h1>Sign In</h1>
-  <div id="status"></div>
-  <form id="form">
-    <label>Email: <input type="email" id="email" required></label><br>
-    <label>Password: <input type="password" id="password" required></label><br>
-    <button type="submit">Sign In</button>
-  </form>
 
-  <div id="totp-container" style="display:none;">
-    <p>Enter your 2FA code:</p>
-    <input id="totp" maxlength="6">
-    <button id="totp-submit">Verify 2FA</button>
-  </div>
+  <input id="email" placeholder="Email"><br><br>
+  <input id="password" type="password" placeholder="Password"><br><br>
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+  <button onclick="signin()">Sign In</button>
+
+  <p id="msg"></p>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="signin.js"></script>
 </body>
 </html>
+
+
+
+
+
