@@ -1,32 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sign In</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Sign In - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- reCAPTCHA v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+  <script>
+    async function refreshRecaptchaToken() {
+      const token = await grecaptcha.execute(
+        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+        { action: "signin" }
+      );
+      document.getElementById("recaptchaToken").value = token;
+    }
+
+    grecaptcha.ready(refreshRecaptchaToken);
+    setInterval(refreshRecaptchaToken, 120000);
+  </script>
+
   <style>
-    body { background:#000; color:#ffd700; font-family:Arial; text-align:center; padding:40px; }
-    input { padding:10px; font-size:18px; width:250px; }
-    button { padding:10px 20px; font-size:18px; background:#ffd700; border:none; cursor:pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #ffd700;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #ffd700;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      background: #222;
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      color: #ffd700;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .error { color: #ff4d4d; }
+    .success { color: #00ff88; }
+
+    .link {
+      margin-top: 18px;
+      text-align: center;
+      color: #ffd700;
+    }
+
+    .link a {
+      color: #00aaff;
+      text-decoration: none;
+      font-weight: bold;
+    }
   </style>
 </head>
 
 <body>
-  <h1>Sign In</h1>
+  <div class="container">
+    <h1>Sign In</h1>
 
-  <input id="email" placeholder="Email"><br><br>
-  <input id="password" type="password" placeholder="Password"><br><br>
+    <form id="signinForm">
+      <input type="hidden" id="recaptchaToken">
 
-  <button onclick="signin()">Sign In</button>
+      <label>Email</label>
+      <input type="email" id="email" required />
 
-  <p id="msg"></p>
+      <label>Password</label>
+      <input type="password" id="password" required minlength="6" />
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script src="signin.js"></script>
+      <button type="submit">Sign In</button>
+    </form>
+
+    <div class="link">
+      Don't have an account? <a href="signin.html">Create Account</a>
+    </div>
+
+    <div id="status" class="message"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://fchwxnontbfybypezpge.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjaHd4bm9udGJmeWJ5cGV6cGdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NDAxNTAsImV4cCI6MjA5NjExNjE1MH0.PTs0fUP0aX21t6RtXyVD__yohn1lFynhgplXhbfZeEI"
+    );
+
+    const form = document.getElementById("signinForm");
+    const statusEl = document.getElementById("status");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const captchaToken = document.getElementById("recaptchaToken").value;
+
+      statusEl.textContent = "";
+      statusEl.className = "message";
+
+      if (!captchaToken) {
+        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 1️⃣ Check if email exists
+      const { data: userRow } = await client
+        .from("UsersSQL")
+        .select("email, totp_enabled")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!userRow) {
+        statusEl.textContent = "Invalid email or password.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 2️⃣ Try to sign in with password + captcha
+      const { data, error } = await client.auth.signInWithPassword({
+        email,
+        password,
+        options: {
+          captchaToken: captchaToken
+        }
+      });
+
+      if (error) {
+        statusEl.textContent = "Invalid email or password.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 3️⃣ Check 2FA status
+      if (userRow.totp_enabled === true) {
+        window.location.href = "totpverify.html";
+        return;
+      }
+
+      // 4️⃣ No 2FA yet → go to setup
+      window.location.href = "totpsetup.html";
+    });
+  </script>
 </body>
 </html>
-
-
 
 
 
