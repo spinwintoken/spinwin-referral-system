@@ -26,9 +26,11 @@
     label { display:block; margin-top:12px; font-weight:bold; }
     input { width:100%; padding:10px; margin-top:6px; background:#222; border:1px solid #ffd700; border-radius:6px; color:#ffd700; }
     button { margin-top:20px; padding:12px; width:100%; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+
     .message { margin-top:20px; font-size:1.6rem; font-weight:bold; text-align:center; }
     .error { color:#ff4d4d; }
     .success { color:#00ff88; }
+
     .link { margin-top:18px; text-align:center; }
     .link a { color:#00aaff; text-decoration:none; font-weight:bold; }
   </style>
@@ -62,6 +64,7 @@
     <div id="status" class="message"></div>
   </div>
 
+  <!-- Supabase via ES module -->
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -77,6 +80,7 @@
     const ref = urlParams.get('ref') || 'SPINROOT';
     document.getElementById('refInfo').textContent = 'Referral: ' + ref;
 
+    /* ⭐ FIXED-LENGTH REFERRAL CODE (8 CHARACTERS) */
     function generateReferralCode() {
       return "SW" + Math.random().toString(36).substring(2, 8).toUpperCase();
     }
@@ -101,11 +105,17 @@
         return;
       }
 
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('UsersSQL')
         .select('indicator')
         .eq('email', email)
         .maybeSingle();
+
+      if (existingError) {
+        statusEl.textContent = 'Error checking user: ' + existingError.message;
+        statusEl.classList.add('error');
+        return;
+      }
 
       if (existing) {
         if (existing.indicator === 2) {
@@ -135,11 +145,13 @@
         return;
       }
 
+      const uid = data.user.id;
       const referralCode = generateReferralCode();
 
       const { error: insertError } = await supabase
         .from('UsersSQL')
         .insert({
+          uid,
           email,
           indicator: 1,
           referralcode: referralCode,
@@ -165,12 +177,14 @@
       form.reset();
     }
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', (e) => {
       e.preventDefault();
+      completeSignup(document.getElementById('recaptchaToken').value);
+    });
+  </script>
+</body>
+</html>
 
-      const btn = form.querySelector("button[type='submit']");
-      btn.disabled = true;
 
-      await refreshRecaptchaToken();
-      const token = document.getElementById('
+
 
