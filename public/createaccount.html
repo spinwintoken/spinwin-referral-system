@@ -7,12 +7,13 @@
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+  <!-- reCAPTCHA -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
   <script>
     async function refreshRecaptchaToken() {
       const token = await grecaptcha.execute(
         "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
-        { action: "submit" }
+        { action: "signup" }
       );
       document.getElementById("recaptchaToken").value = token;
     }
@@ -28,14 +29,7 @@
     input { width:100%; padding:10px; margin-top:6px; background:#222; border:1px solid #ffd700; border-radius:6px; color:#ffd700; }
     button { margin-top:20px; padding:12px; width:100%; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
 
-    /* BIG, BOLD MESSAGES */
-    .message {
-      margin-top: 20px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      text-align: center;
-    }
-
+    .message { margin-top:20px; font-size:1.6rem; font-weight:bold; text-align:center; }
     .error { color:#ff4d4d; }
     .success { color:#00ff88; }
 
@@ -109,7 +103,7 @@
         return;
       }
 
-      // ⭐ 1️⃣ CHECK IF EMAIL EXISTS
+      // 1️⃣ CHECK IF EMAIL EXISTS
       const { data: existing } = await client
         .from("UsersSQL")
         .select("indicator")
@@ -122,22 +116,22 @@
         if (ind == 2) {
           statusEl.textContent = "User already exists.";
           statusEl.classList.add("error");
-          return;  // STOP
+          return;
         }
 
         if (ind == 1) {
           statusEl.textContent = "Account already created. Please confirm your email.";
           statusEl.classList.add("error");
-          return;  // STOP
+          return;
         }
       }
 
-      // ⭐ 2️⃣ CREATE ACCOUNT
+      // 2️⃣ CREATE ACCOUNT (FIXED REDIRECT URL)
       const { data, error } = await client.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: "https://www.spinwintoken.com/registerconfirm.html",
+          emailRedirectTo: "https://spinwin-referral-system.vercel.app/registerconfirm.html",
           captchaToken: token
         }
       });
@@ -151,7 +145,7 @@
       const uid = data.user.id;
       const referralCode = generateReferralCode();
 
-      // ⭐ 3️⃣ INSERT INTO UsersSQL
+      // 3️⃣ INSERT INTO UsersSQL
       await client.from("UsersSQL").insert({
         uid,
         email,
