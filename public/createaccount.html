@@ -145,21 +145,24 @@
       const uid = data.user.id;
       const referralCode = generateReferralCode();
 
-      // 3️⃣ INSERT INTO UsersSQL
-      const { error: insertError } = await client.from("UsersSQL").insert({
-        uid,
-        email,
-        indicator: 1,
-        referralcode: referralCode,
-        referred_by: ref,
-        teammembers: 0,
-        teamtoken: 0,
-        teamtokenpurchased: 0,
-        teamtokenavailable: 0,
-        maxtoken: 10,
-        totp_secret: null,
-        totp_enabled: false
-      });
+      // 3️⃣ INSERT INTO UsersSQL (FORCE RETURNING)
+      const { data: insertData, error: insertError } = await client
+        .from("UsersSQL")
+        .insert({
+          uid,
+          email,
+          indicator: 1,
+          referralcode: referralCode,
+          referred_by: ref,
+          teammembers: 0,
+          totp_secret: null,
+          totp_enabled: false,
+          teamtoken: 0,
+          teamtokenpurchased: 0,
+          teamtokenavailable: 0,
+          maxtoken: 10
+        })
+        .select();
 
       if (insertError) {
         statusEl.textContent = "Database insert error: " + insertError.message;
@@ -179,3 +182,4 @@
   </script>
 </body>
 </html>
+
