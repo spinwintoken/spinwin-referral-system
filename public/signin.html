@@ -179,12 +179,12 @@
 
       // 3️⃣ Check 2FA status
       if (userRow.totp_enabled === true) {
-        window.location.href = "totpverify.html";
+        window.location.href = "totp-verify.html";
         return;
       }
 
       // 4️⃣ No 2FA yet → go to setup
-      window.location.href = "totpsetup.html";
+      window.location.href = "totp-setup.html";
     });
   </script>
 </body>
