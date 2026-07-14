@@ -5,10 +5,7 @@
   <title>2FA Setup - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <!-- QR Code generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
@@ -41,13 +38,11 @@
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
 
-      /* Initialize Supabase */
       const client = supabase.createClient(
         "https://nloupcyqrgnrcsxcmzqf.supabase.co",
         "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT"
       );
 
-      /* Get current session */
       const { data: sessionData } = await client.auth.getSession();
       if (!sessionData.session) {
         window.location.href = "signin.html";
@@ -57,7 +52,6 @@
       const uid = sessionData.session.user.id;
       const email = sessionData.session.user.email;
 
-      /* Call totp-setup Edge Function */
       const res = await fetch(
         "https://nloupcyqrgnrcsxcmzqf.supabase.co/functions/v1/totp-setup",
         {
@@ -78,14 +72,12 @@
         return;
       }
 
-      /* Generate QR code */
       new QRCode(document.getElementById("qrcode"), {
         text: otpauth,
         width: 200,
         height: 200
       });
 
-      /* Verify button */
       document.getElementById("verifyBtn").addEventListener("click", async () => {
         const code = document.getElementById("totpCode").value.trim();
         const statusEl = document.getElementById("status");
