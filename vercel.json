@@ -48,3 +48,4 @@ await client
 
 msg.textContent = "Your email has been verified successfully!";
 document.getElementById("signinBtn").style.display = "inline-block";
+
