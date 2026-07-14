@@ -24,7 +24,7 @@ async function finalizeAccount() {
   // Hydrate session
   await client.auth.setSession({
     access_token,
-    refresh_token
+    refresh_token,
   });
 
   const { data: { session } } = await client.auth.getSession();
@@ -45,7 +45,7 @@ async function finalizeAccount() {
     .from("UsersSQL")
     .select("*")
     .eq("uid", uid)
-    .single();   // ⭐ REQUIRED — makes userRow an object
+    .single();   // ⭐ REQUIRED
 
   if (userErr || !userRow) {
     msg.textContent = "User record not found.";
