@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>2FA Setup - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; }
+    .container { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { text-align:center; }
+    input { width:100%; padding:10px; margin-top:10px; background:#222; border:1px solid #ffd700; color:#ffd700; border-radius:6px; }
+    button { width:100%; padding:12px; margin-top:20px; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+    #status { margin-top:20px; text-align:center; font-size:1.2rem; }
+    #qrcode { margin:auto; width:200px; height:200px; padding:20px; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Set Up 2FA</h1>
+
+    <p>Scan this QR code using Google Authenticator or Authy.</p>
+
+    <div id="qrcode"></div>
+
+    <label>Enter 6‑digit code</label>
+    <input type="text" id="totpCode" maxlength="6" />
+
+    <button id="verifyBtn">Verify & Enable 2FA</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+
+      const client = supabase.createClient(
+        "https://nloupcyqrgnrcsxcmzqf.supabase.co",
+        "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT"
+      );
+
+      const { data: sessionData } = await client.auth.getSession();
+      if (!sessionData.session) {
+        window.location.href = "signin.html";
+        return;
+      }
+
+      const uid = sessionData.session.user.id;
+      const email = sessionData.session.user.email;
+
+      // Call totp-setup function
+      const res = await fetch(
+        "https://nloupcyqrgnrcsxcmzqf.supabase.co/functions/v1/totp-setup",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uid, email })
+        }
+      );
+
+      const { otpauth } = await res.json();
+
+      // Generate QR code
+      new QRCode(document.getElementById("qrcode"), otpauth);
+
+      // Verify button
+      document.getElementById("verifyBtn").addEventListener("click", async () => {
+        const code = document.getElementById("totpCode").value.trim();
+        const statusEl = document.getElementById("status");
+
+        if (code.length !== 6) {
+          statusEl.textContent = "Enter a valid 6‑digit code.";
+          return;
+        }
+
+        const verifyRes = await fetch(
+          "https://nloupcyqrgnrcsxcmzqf.supabase.co/functions/v1/totp-verify",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uid, code })
+          }
+        );
+
+        const { success } = await verifyRes.json();
+
+        if (!success) {
+          statusEl.textContent = "Invalid code. Try again.";
+          statusEl.style.color = "#ff4d4d";
+          return;
+        }
+
+        statusEl.textContent = "2FA Enabled!";
+        statusEl.style.color = "#00ff88";
+
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 1200);
+      });
+
+    });
+  </script>
+</body>
+</html>
