@@ -1,8 +1,50 @@
-{
-  "rewrites": [
-    {
-      "source": "/registerconfirm.html",
-      "destination": "/registerconfirm.html"
-    }
-  ]
+const email = session.user.email;
+const uid = session.user.id;
+
+document.getElementById("emailDisplay").textContent = "Email: " + email;
+
+// ⭐ Load user row using UID (correct)
+const { data: userRow } = await client
+  .from("UsersSQL")
+  .select("*")
+  .eq("uid", uid)
+  .single();
+
+if (!userRow) {
+  msg.textContent = "User record not found.";
+  document.getElementById("signinBtn").style.display = "inline-block";
+  return;
 }
+
+const referrerCode = userRow.referred_by;
+document.getElementById("refDisplay").textContent =
+  "Referred By: " + referrerCode;
+
+// ⭐ Set indicator = 2
+await client
+  .from("UsersSQL")
+  .update({ indicator: 2 })
+  .eq("uid", uid);
+
+// ⭐ Calculate new teammembers
+const { data: refRows } = await client
+  .from("UsersSQL")
+  .select("teammembers")
+  .eq("referred_by", referrerCode)
+  .order("teammembers", { ascending: true });
+
+const teamValues = refRows
+  .map(r => Number(r.teammembers))
+  .filter(v => !Number.isNaN(v));
+
+const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
+const newTeamCount = maxTeam + 1;
+
+// ⭐ Update teammembers
+await client
+  .from("UsersSQL")
+  .update({ teammembers: newTeamCount })
+  .eq("uid", uid);
+
+msg.textContent = "Your email has been verified successfully!";
+document.getElementById("signinBtn").style.display = "inline-block";
