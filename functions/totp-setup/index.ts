@@ -18,16 +18,13 @@ serve(async (req) => {
       });
     }
 
-    // Generate TOTP secret
     const secret = otplib.authenticator.generateSecret();
 
-    // Store secret in DB
     await supabase
       .from("UsersSQL")
       .update({ totp_secret: secret })
       .eq("uid", uid);
 
-    // Build otpauth URI
     const otpauth = otplib.authenticator.keyuri(
       email,
       "SpinWinToken",
@@ -46,5 +43,6 @@ serve(async (req) => {
     });
   }
 });
+
 
 
