@@ -4,7 +4,7 @@ const uid = session.user.id;
 document.getElementById("emailDisplay").textContent = "Email: " + email;
 
 // ⭐ Load user row using UID (correct)
-const { data: userRow } = await client
+const { data: userRow, error: userErr } = await client
   .from("UsersSQL")
   .select("*")
   .eq("uid", uid)
@@ -48,4 +48,6 @@ await client
 
 msg.textContent = "Your email has been verified successfully!";
 document.getElementById("signinBtn").style.display = "inline-block";
+
+
 
