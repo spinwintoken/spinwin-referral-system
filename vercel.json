@@ -1,93 +1,11 @@
-const supabaseUrl = "https://nloupcyqrgnrcsxcmzqf.supabase.co";
-const supabaseKey = "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT";
-
-const client = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-async function finalizeAccount() {
-  const msg = document.getElementById("msg");
-
-  // Extract tokens from hash or query
-  const hashParams = new URLSearchParams(window.location.hash.substring(1));
-  const queryParams = new URLSearchParams(window.location.search);
-
-  const access_token =
-    hashParams.get("access_token") || queryParams.get("access_token");
-  const refresh_token =
-    hashParams.get("refresh_token") || queryParams.get("refresh_token");
-
-  if (!access_token || !refresh_token) {
-    msg.textContent = "Invalid or expired confirmation link. Please sign in.";
-    document.getElementById("signinBtn").style.display = "inline-block";
-    return;
-  }
-
-  // Hydrate session
-  await client.auth.setSession({
-    access_token,
-    refresh_token,
-  });
-
-  const { data: { session } } = await client.auth.getSession();
-
-  if (!session) {
-    msg.textContent = "Unable to load your session. Please sign in.";
-    document.getElementById("signinBtn").style.display = "inline-block";
-    return;
-  }
-
-  const email = session.user.email;
-  const uid = session.user.id;
-
-  document.getElementById("emailDisplay").textContent = "Email: " + email;
-
-  // ⭐ Load user row using UID (correct)
-  const { data: userRow, error: userErr } = await client
-    .from("UsersSQL")
-    .select("*")
-    .eq("uid", uid)
-    .single();   // ⭐ REQUIRED
-
-  if (userErr || !userRow) {
-    msg.textContent = "User record not found.";
-    document.getElementById("signinBtn").style.display = "inline-block";
-    return;
-  }
-
-  const referrerCode = userRow.referred_by;
-  document.getElementById("refDisplay").textContent =
-    "Referred By: " + referrerCode;
-
-  // ⭐ Set indicator = 2
-  await client
-    .from("UsersSQL")
-    .update({ indicator: 2 })
-    .eq("uid", uid);
-
-  // ⭐ Calculate new teammembers
-  const { data: refRows } = await client
-    .from("UsersSQL")
-    .select("teammembers")
-    .eq("referred_by", referrerCode)
-    .order("teammembers", { ascending: true });
-
-  const teamValues = refRows
-    .map(r => Number(r.teammembers))
-    .filter(v => !Number.isNaN(v));
-
-  const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
-  const newTeamCount = maxTeam + 1;
-
-  // ⭐ Update teammembers
-  await client
-    .from("UsersSQL")
-    .update({ teammembers: newTeamCount })
-    .eq("uid", uid);
-
-  msg.textContent = "Your email has been verified successfully!";
-  document.getElementById("signinBtn").style.display = "inline-block";
+{
+  "rewrites": [
+    {
+      "source": "/registerconfirm.html",
+      "destination": "/registerconfirm.html"
+    }
+  ]
 }
-
-finalizeAccount();
 
 
 
