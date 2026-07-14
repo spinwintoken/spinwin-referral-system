@@ -1,0 +1,28 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Supabase CLI
+        run: |
+          curl -fsSL https://cli.supabase.com/install | sh
+
+      - name: Link project
+        run: |
+          supabase link --project-ref nloupcyqrgnrcsxcmzqf
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy functions
+        run: |
+          supabase functions deploy totp-setup
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
