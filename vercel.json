@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/registerconfirm.html",
+      "destination": "/registerconfirm.html"
+    }
+  ]
+}
