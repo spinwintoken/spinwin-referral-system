@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign In - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Sign In</h1>
+
+  <input id="email" type="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Password" />
+  <button id="signinBtn">Sign In & Send Code</button>
+
+  <div id="status"></div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://nloupcyqrgnrcsxcmzqf.supabase.co",
+      "YOUR_ANON_KEY_HERE"
+    );
+
+    document.getElementById("signinBtn").addEventListener("click", async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const statusEl = document.getElementById("status");
+
+      statusEl.textContent = "";
+
+      if (!email || !password) {
+        statusEl.textContent = "Enter email and password.";
+        return;
+      }
+
+      // Step 1: verify email + password
+      const { data, error } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        statusEl.textContent = "Invalid email or password.";
+        return;
+      }
+
+      // Optional: clear any existing session
+      await client.auth.signOut();
+
+      // Step 2: send email code (OTP)
+      const { error: otpError } = await client.auth.signInWithOtp({
+        email,
+        type: "email" // Supabase sends a 6-digit code
+      });
+
+      if (otpError) {
+        statusEl.textContent = "Failed to send code. Try again.";
+        return;
+      }
+
+      // Store email for next step
+      localStorage.setItem("pending_email", email);
+
+      statusEl.textContent = "Code sent. Check your email.";
+      setTimeout(() => {
+        window.location.href = "verifycode.html";
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
