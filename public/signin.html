@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign In - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- reCAPTCHA v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+  <script>
+    async function refreshRecaptchaToken() {
+      const token = await grecaptcha.execute(
+        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+        { action: "signin" }
+      );
+      document.getElementById("recaptchaToken").value = token;
+    }
+
+    grecaptcha.ready(refreshRecaptchaToken);
+    setInterval(refreshRecaptchaToken, 120000);
+  </script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #ffd700;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #ffd700;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      background: #222;
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      color: #ffd700;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 1.6rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .error { color: #ff4d4d; }
+    .success { color: #00ff88; }
+
+    .link {
+      margin-top: 18px;
+      text-align: center;
+      color: #ffd700;
+    }
+
+    .link a {
+      color: #00aaff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Sign In</h1>
+
+    <form id="signinForm">
+      <input type="hidden" id="recaptchaToken">
+
+      <label>Email</label>
+      <input type="email" id="email" required />
+
+      <label>Password</label>
+      <input type="password" id="password" required minlength="6" />
+
+      <button type="submit">Sign In</button>
+    </form>
+
+    <div class="link">
+      Don't have an account? <a href="createaccount.html">Create Account</a>
+    </div>
+
+    <div id="status" class="message"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://nloupcyqrgnrcsxcmzqf.supabase.co",
+      "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT"
+    );
+
+    const form = document.getElementById("signinForm");
+    const statusEl = document.getElementById("status");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const captchaToken = document.getElementById("recaptchaToken").value;
+
+      statusEl.textContent = "";
+      statusEl.className = "message";
+
+      if (!captchaToken) {
+        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 1️⃣ Verify email + password
+      const { data, error } = await client.auth.signInWithPassword({
+        email,
+        password,
+        options: { captchaToken }
+      });
+
+      if (error) {
+        statusEl.textContent = "Invalid email or password.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      const uid = data.user.id;
+
+      // 2️⃣ Generate custom 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // 3️⃣ Store code in UsersSQL
+      const { error: updateError } = await client
+        .from("UsersSQL")
+        .update({
+          email_code: code,
+          email_code_expires: new Date(Date.now() + 10 * 60 * 1000)
+        })
+        .eq("uid", uid);
+
+      if (updateError) {
+        statusEl.textContent = "Database error storing code.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 4️⃣ Send email using SMTP2GO (or your SMTP provider)
+      const smtpResponse = await fetch("https://api.smtp2go.com/v1/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: "YOUR_SMTP2GO_API_KEY",
+          to: [email],
+          sender: "no-reply@spinwintoken.com",
+          subject: "Your SpinWinToken Verification Code",
+          text_body: `Your verification code is ${code}. It expires in 10 minutes.`,
+          html_body: `<p>Your verification code is: <strong>${code}</strong></p>`
+        })
+      });
+
+      const smtpResult = await smtpResponse.json();
+
+      if (!smtpResult.success) {
+        statusEl.textContent = "Failed to send email.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 5️⃣ Store email for next page
+      localStorage.setItem("pending_email", email);
+
+      statusEl.textContent = "Code sent. Check your email.";
+      statusEl.classList.add("success");
+
+      setTimeout(() => {
+        window.location.href = "verifycode.html";
+      }, 1200);
+    });
+  </script>
+</body>
+</html>
