@@ -149,7 +149,7 @@
         return;
       }
 
-      // 1️⃣ Verify email + password
+      // 1️⃣ Sign in with Supabase
       const { data, error } = await client.auth.signInWithPassword({
         email,
         password,
@@ -164,7 +164,7 @@
 
       const uid = data.user.id;
 
-      // 2️⃣ Generate custom 6-digit code
+      // 2️⃣ Generate 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
       // 3️⃣ Store code in UsersSQL
@@ -182,7 +182,7 @@
         return;
       }
 
-      // 4️⃣ Send email using SMTP2GO (or your SMTP provider)
+      // 4️⃣ Send email using SMTP2GO
       const smtpResponse = await fetch("https://api.smtp2go.com/v1/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -217,3 +217,4 @@
   </script>
 </body>
 </html>
+
