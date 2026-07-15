@@ -1,0 +1,57 @@
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+const client = supabase.createClient(
+  "https://nloupcyqrgnrcsxcmzqf.supabase.co",
+  "YOUR_ANON_KEY"
+);
+
+async function verifyCustomCode() {
+  const code = document.getElementById("code").value.trim();
+  const email = localStorage.getItem("pending_email");
+  const statusEl = document.getElementById("status");
+
+  if (!email) {
+    statusEl.textContent = "Missing email context. Sign in again.";
+    return;
+  }
+
+  // Step 1: Get user record
+  const { data: userRow } = await client
+    .from("UsersSQL")
+    .select("*")
+    .eq("email", email)
+    .single();
+
+  if (!userRow) {
+    statusEl.textContent = "User not found.";
+    return;
+  }
+
+  // Step 2: Validate code
+  if (userRow.email_code !== code) {
+    statusEl.textContent = "Invalid code.";
+    return;
+  }
+
+  if (new Date() > new Date(userRow.email_code_expires)) {
+    statusEl.textContent = "Code expired.";
+    return;
+  }
+
+  // Step 3: Create session again
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password: userRow.password
+  });
+
+  if (error) {
+    statusEl.textContent = "Failed to create session.";
+    return;
+  }
+
+  statusEl.textContent = "Verified. Redirecting...";
+  setTimeout(() => {
+    window.location.href = "dashboard.html";
+  }, 1000);
+}
+</script>
