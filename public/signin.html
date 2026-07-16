@@ -136,7 +136,7 @@
           content: [
             {
               type: "text/plain",
-              value: `Your verification code is ${code}. It expires in 10 minutes.`
+              value: `Your verification code is ${code}. Enter it on the next page.`
             }
           ]
         })
@@ -145,13 +145,8 @@
       // 7️⃣ Store email
       localStorage.setItem("pending_email", email);
 
-      statusEl.textContent = "Code sent. Check your email.";
-      statusEl.classList.add("success");
-
-      // 8️⃣ Redirect
-      setTimeout(() => {
-        window.location.href = "verifycode.html";
-      }, 1200);
+      // 8️⃣ Redirect immediately
+      window.location.href = "verifycode.html";
     });
   </script>
 </body>
