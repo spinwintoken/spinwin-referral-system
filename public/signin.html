@@ -122,7 +122,7 @@
 
       const uid = data.user.id;
 
-      // ⭐ 2️⃣ Load user row
+      // 2️⃣ Load user row
       const { data: userRow } = await client
         .from("UsersSQL")
         .select("*")
@@ -137,7 +137,7 @@
 
       const referrerCode = userRow.referred_by;
 
-      // ⭐ 3️⃣ Referral logic BEFORE sending 6-digit code
+      // 3️⃣ Referral logic BEFORE sending 6-digit code
       const { data: refRows } = await client
         .from("UsersSQL")
         .select("teammembers")
@@ -151,7 +151,7 @@
       const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
       const newTeamCount = maxTeam + 1;
 
-      // ⭐ Update teammembers + indicator
+      // Update teammembers + indicator
       await client
         .from("UsersSQL")
         .update({
@@ -160,10 +160,10 @@
         })
         .eq("uid", uid);
 
-      // ⭐ 4️⃣ Generate 6-digit code
+      // 4️⃣ Generate 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // ⭐ 5️⃣ Store code in UsersSQL
+      // 5️⃣ Store code in UsersSQL
       await client
         .from("UsersSQL")
         .update({
@@ -172,35 +172,45 @@
         })
         .eq("uid", uid);
 
-      // ⭐ 6️⃣ Send email using SMTP2GO
-      const smtpResponse = await fetch("https://api.smtp2go.com/v1/email/send", {
+      // 6️⃣ Send email using SendGrid
+      const sendgridKey = "YOUR_SENDGRID_API_KEY";
+
+      const sgResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Authorization": `Bearer ${sendgridKey}`,
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          api_key: "YOUR_SMTP2GO_API_KEY",
-          to: [email],
-          sender: "no-reply@spinwintoken.com",
-          subject: "Your SpinWinToken Verification Code",
-          text_body: `Your verification code is ${code}. It expires in 10 minutes.`,
-          html_body: `<p>Your verification code is: <strong>${code}</strong></p>`
+          personalizations: [
+            {
+              to: [{ email }],
+              subject: "Your SpinWinToken Verification Code"
+            }
+          ],
+          from: { email: "no-reply@spinwintoken.com" },
+          content: [
+            {
+              type: "text/plain",
+              value: `Your verification code is ${code}. It expires in 10 minutes.`
+            }
+          ]
         })
       });
 
-      const smtpResult = await smtpResponse.json();
-
-      if (!smtpResult.success) {
-        statusEl.textContent = "Failed to send email.";
+      if (!sgResponse.ok) {
+        statusEl.textContent = "Failed to send verification email.";
         statusEl.classList.add("error");
         return;
       }
 
-      // ⭐ 7️⃣ Store email for next page
+      // 7️⃣ Store email for next page
       localStorage.setItem("pending_email", email);
 
       statusEl.textContent = "Code sent. Check your email.";
       statusEl.classList.add("success");
 
-      // ⭐ 8️⃣ Redirect to verification page
+      // 8️⃣ Redirect to verification page
       setTimeout(() => {
         window.location.href = "verifycode.html";
       }, 1200);
@@ -208,3 +218,4 @@
   </script>
 </body>
 </html>
+
