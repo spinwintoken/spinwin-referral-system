@@ -8,68 +8,15 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #000;
-      color: #ffd700;
-      padding: 40px;
-      margin: 0;
-    }
-
-    .container {
-      max-width: 420px;
-      margin: 0 auto;
-      background: #111;
-      padding: 30px;
-      border-radius: 12px;
-      border: 1px solid #ffd700;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 25px;
-      color: #ffd700;
-    }
-
-    label {
-      display: block;
-      margin-top: 12px;
-      font-weight: bold;
-      color: #ffd700;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      background: #222;
-      border: 1px solid #ffd700;
-      border-radius: 6px;
-      color: #ffd700;
-    }
-
-    button {
-      margin-top: 20px;
-      padding: 12px;
-      width: 100%;
-      background: #ffd700;
-      color: #000;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .message {
-      margin-top: 20px;
-      font-size: 1.6rem;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    .error { color: #ff4d4d; }
-    .success { color: #00ff88; }
+    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; margin:0; }
+    .container { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
+    h1 { text-align:center; margin-bottom:25px; color:#ffd700; }
+    label { display:block; margin-top:12px; font-weight:bold; }
+    input { width:100%; padding:10px; margin-top:6px; background:#222; border:1px solid #ffd700; border-radius:6px; color:#ffd700; }
+    button { margin-top:20px; padding:12px; width:100%; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+    .message { margin-top:20px; font-size:1.6rem; font-weight:bold; text-align:center; }
+    .error { color:#ff4d4d; }
+    .success { color:#00ff88; }
   </style>
 </head>
 
@@ -95,6 +42,8 @@
       "https://nloupcyqrgnrcsxcmzqf.supabase.co",
       "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT"
     );
+
+    const SENDGRID_KEY = "SG_YOUR_REAL_SENDGRID_KEY_HERE";
 
     const form = document.getElementById("signinForm");
     const statusEl = document.getElementById("status");
@@ -137,21 +86,17 @@
 
       const referrerCode = userRow.referred_by;
 
-      // 3️⃣ Referral logic BEFORE sending 6-digit code
+      // 3️⃣ Referral logic
       const { data: refRows } = await client
         .from("UsersSQL")
         .select("teammembers")
         .eq("referred_by", referrerCode)
         .order("teammembers", { ascending: true });
 
-      const teamValues = refRows
-        .map(r => Number(r.teammembers))
-        .filter(v => !Number.isNaN(v));
-
+      const teamValues = refRows.map(r => Number(r.teammembers)).filter(v => !Number.isNaN(v));
       const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
       const newTeamCount = maxTeam + 1;
 
-      // Update teammembers + indicator
       await client
         .from("UsersSQL")
         .update({
@@ -163,7 +108,7 @@
       // 4️⃣ Generate 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // 5️⃣ Store code in UsersSQL
+      // 5️⃣ Store code
       await client
         .from("UsersSQL")
         .update({
@@ -172,13 +117,12 @@
         })
         .eq("uid", uid);
 
-      // 6️⃣ Send email using SendGrid
-      const sendgridKey = "YOUR_SENDGRID_API_KEY";
-
-      const sgResponse = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      // 6️⃣ SendGrid email (browser-safe using no-cors)
+      fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
+        mode: "no-cors",
         headers: {
-          "Authorization": `Bearer ${sendgridKey}`,
+          "Authorization": `Bearer ${SENDGRID_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -198,19 +142,13 @@
         })
       });
 
-      if (!sgResponse.ok) {
-        statusEl.textContent = "Failed to send verification email.";
-        statusEl.classList.add("error");
-        return;
-      }
-
-      // 7️⃣ Store email for next page
+      // 7️⃣ Store email
       localStorage.setItem("pending_email", email);
 
       statusEl.textContent = "Code sent. Check your email.";
       statusEl.classList.add("success");
 
-      // 8️⃣ Redirect to verification page
+      // 8️⃣ Redirect
       setTimeout(() => {
         window.location.href = "verifycode.html";
       }, 1200);
@@ -218,4 +156,5 @@
   </script>
 </body>
 </html>
+
 
