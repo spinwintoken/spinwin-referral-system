@@ -8,21 +8,6 @@
   <!-- Supabase -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- reCAPTCHA v3 -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
-  <script>
-    async function refreshRecaptchaToken() {
-      const token = await grecaptcha.execute(
-        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
-        { action: "signin" }
-      );
-      document.getElementById("recaptchaToken").value = token;
-    }
-
-    grecaptcha.ready(refreshRecaptchaToken);
-    setInterval(refreshRecaptchaToken, 120000);
-  </script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -86,18 +71,6 @@
 
     .error { color: #ff4d4d; }
     .success { color: #00ff88; }
-
-    .link {
-      margin-top: 18px;
-      text-align: center;
-      color: #ffd700;
-    }
-
-    .link a {
-      color: #00aaff;
-      text-decoration: none;
-      font-weight: bold;
-    }
   </style>
 </head>
 
@@ -106,8 +79,6 @@
     <h1>Sign In</h1>
 
     <form id="signinForm">
-      <input type="hidden" id="recaptchaToken">
-
       <label>Email</label>
       <input type="email" id="email" required />
 
@@ -116,10 +87,6 @@
 
       <button type="submit">Sign In</button>
     </form>
-
-    <div class="link">
-      Don't have an account? <a href="createaccount.html">Create Account</a>
-    </div>
 
     <div id="status" class="message"></div>
   </div>
@@ -138,22 +105,14 @@
 
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      const captchaToken = document.getElementById("recaptchaToken").value;
 
       statusEl.textContent = "";
       statusEl.className = "message";
 
-      if (!captchaToken) {
-        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
-        statusEl.classList.add("error");
-        return;
-      }
-
       // 1️⃣ Sign in with Supabase
       const { data, error } = await client.auth.signInWithPassword({
         email,
-        password,
-        options: { captchaToken }
+        password
       });
 
       if (error) {
@@ -210,6 +169,7 @@
       statusEl.textContent = "Code sent. Check your email.";
       statusEl.classList.add("success");
 
+      // 6️⃣ Redirect to verification page
       setTimeout(() => {
         window.location.href = "verifycode.html";
       }, 1200);
