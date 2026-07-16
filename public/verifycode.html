@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verify Code - SpinWinToken</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      background: #000;
+      color: #ffd700;
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #111;
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #ffd700;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      background: #222;
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      color: #ffd700;
+      font-size: 18px;
+      text-align: center;
+      letter-spacing: 4px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .error { color: #ff4d4d; }
+    .success { color: #00ff88; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Enter Verification Code</h1>
+
+    <form id="verifyForm">
+      <label>6‑Digit Code</label>
+      <input type="text" id="code" maxlength="6" required />
+
+      <button type="submit">Verify</button>
+    </form>
+
+    <div id="status" class="message"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      "https://nloupcyqrgnrcsxcmzqf.supabase.co",
+      "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT"
+    );
+
+    const form = document.getElementById("verifyForm");
+    const statusEl = document.getElementById("status");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const code = document.getElementById("code").value.trim();
+      const email = localStorage.getItem("pending_email");
+
+      if (!email) {
+        statusEl.textContent = "No pending email found. Please sign in again.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 1️⃣ Load user row
+      const { data: userRow, error } = await client
+        .from("UsersSQL")
+        .select("*")
+        .eq("email", email)
+        .single();
+
+      if (!userRow) {
+        statusEl.textContent = "User not found.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 2️⃣ Check code
+      if (userRow.email_code !== code) {
+        statusEl.textContent = "Incorrect code.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 3️⃣ Check expiration
+      if (new Date(userRow.email_code_expires) < new Date()) {
+        statusEl.textContent = "Code expired.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 4️⃣ Code is correct
+      statusEl.textContent = "Verification successful!";
+      statusEl.classList.add("success");
+
+      // 5️⃣ Redirect to dashboard
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 1200);
+    });
+  </script>
+</body>
+</html>
