@@ -2,37 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Sign In - SpinWinToken</title>
+  <title>Create Account - SpinWinToken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+  <!-- reCAPTCHA -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4"></script>
+  <script>
+    async function refreshRecaptchaToken() {
+      const token = await grecaptcha.execute(
+        "6Le0ew8tAAAAAMLEY9q16CLm6CsO8OqvBr88csI4",
+        { action: "signup" }
+      );
+      document.getElementById("recaptchaToken").value = token;
+    }
+    grecaptcha.ready(refreshRecaptchaToken);
+    setInterval(refreshRecaptchaToken, 120000);
+  </script>
+
   <style>
-    body { background:#000; color:#ffd700; font-family:Arial; padding:40px; margin:0; }
+    body { font-family: Arial; background:#000; color:#ffd700; padding:40px; margin:0; }
     .container { max-width:420px; margin:auto; background:#111; padding:30px; border-radius:12px; border:1px solid #ffd700; }
     h1 { text-align:center; margin-bottom:25px; color:#ffd700; }
     label { display:block; margin-top:12px; font-weight:bold; }
     input { width:100%; padding:10px; margin-top:6px; background:#222; border:1px solid #ffd700; border-radius:6px; color:#ffd700; }
     button { margin-top:20px; padding:12px; width:100%; background:#ffd700; color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; }
+
     .message { margin-top:20px; font-size:1.6rem; font-weight:bold; text-align:center; }
     .error { color:#ff4d4d; }
     .success { color:#00ff88; }
+
+    .link { margin-top:18px; text-align:center; }
+    .link a { color:#00aaff; text-decoration:none; font-weight:bold; }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <h1>Sign In</h1>
+    <h1>Create Account</h1>
 
-    <form id="signinForm">
+    <form id="createAccountForm">
+      <input type="hidden" id="recaptchaToken">
+
       <label>Email</label>
       <input type="email" id="email" required />
 
       <label>Password</label>
       <input type="password" id="password" required minlength="6" />
 
-      <button type="submit">Sign In</button>
+      <label>Confirm Password</label>
+      <input type="password" id="confirmPassword" required minlength="6" />
+
+      <div id="refInfo" class="message" style="font-size:1rem; font-weight:normal;"></div>
+
+      <button type="submit">Create Account</button>
     </form>
+
+    <div class="link">
+      Already have an account? <a href="signin.html">Sign In</a>
+    </div>
 
     <div id="status" class="message"></div>
   </div>
@@ -43,115 +72,117 @@
       "sb_publishable_rdOrMQwrlAW0f0p09RutMw_d6tOiYvT"
     );
 
-    const SENDGRID_KEY = "SG_YOUR_REAL_SENDGRID_KEY_HERE";
-
-    const form = document.getElementById("signinForm");
+    const form = document.getElementById("createAccountForm");
     const statusEl = document.getElementById("status");
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    const urlParams = new URLSearchParams(window.location.search);
 
+    // Enforce max length 8 for referred_by
+    const refRaw = urlParams.get("ref") || "SPINROOT";
+    const ref = refRaw.substring(0, 8);
+
+    document.getElementById("refInfo").textContent = "Referral: " + ref;
+
+    // Always <= 8 chars for referralcode
+    function generateReferralCode() {
+      return "SW" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    }
+
+    async function completeSignup(token) {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
 
       statusEl.textContent = "";
       statusEl.className = "message";
 
-      // 1️⃣ Sign in with Supabase
-      const { data, error } = await client.auth.signInWithPassword({
+      if (!token) {
+        statusEl.textContent = "reCAPTCHA failed. Please refresh the page.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        statusEl.textContent = "Passwords do not match.";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      // 1️⃣ CHECK IF EMAIL EXISTS
+      const { data: existing } = await client
+        .from("UsersSQL")
+        .select("indicator")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (existing) {
+        const ind = existing.indicator;
+
+        if (ind == 2) {
+          statusEl.textContent = "User already exists.";
+          statusEl.classList.add("error");
+          return;
+        }
+
+        if (ind == 1) {
+          statusEl.textContent = "Account already created. Please confirm your email.";
+          statusEl.classList.add("error");
+          return;
+        }
+      }
+
+      // 2️⃣ CREATE ACCOUNT
+      const { data, error } = await client.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: "https://spinwin-referral-system.vercel.app/registerconfirm.html",
+          captchaToken: token
+        }
       });
 
       if (error) {
-        statusEl.textContent = "Invalid email or password.";
+        statusEl.textContent = "Signup error: " + error.message;
         statusEl.classList.add("error");
         return;
       }
 
       const uid = data.user.id;
+      const referralCode = generateReferralCode();
 
-      // 2️⃣ Load user row
-      const { data: userRow } = await client
+      // 3️⃣ INSERT INTO UsersSQL (FORCE RETURNING)
+      const { data: insertData, error: insertError } = await client
         .from("UsersSQL")
-        .select("*")
-        .eq("uid", uid)
-        .single();
+        .insert({
+          uid,
+          email,
+          indicator: 1,
+          referralcode: referralCode,
+          referred_by: ref,
+          teammembers: 0,
+          totp_secret: null,
+          totp_enabled: false,
+          teamtoken: 0,
+          teamtokenpurchased: 0,
+          teamtokenavailable: 0,
+          maxtoken: 10
+        })
+        .select();
 
-      if (!userRow) {
-        statusEl.textContent = "User record not found.";
+      if (insertError) {
+        statusEl.textContent = "Database insert error: " + insertError.message;
         statusEl.classList.add("error");
         return;
       }
 
-      const referrerCode = userRow.referred_by;
-
-      // 3️⃣ Referral logic
-      const { data: refRows } = await client
-        .from("UsersSQL")
-        .select("teammembers")
-        .eq("referred_by", referrerCode)
-        .order("teammembers", { ascending: true });
-
-      const teamValues = refRows.map(r => Number(r.teammembers)).filter(v => !Number.isNaN(v));
-      const maxTeam = teamValues.length > 0 ? Math.max(...teamValues) : 0;
-      const newTeamCount = maxTeam + 1;
-
-      await client
-        .from("UsersSQL")
-        .update({
-          teammembers: newTeamCount,
-          indicator: 2
-        })
-        .eq("uid", uid);
-
-      // 4️⃣ Generate 6-digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-      // 5️⃣ Store code
-      await client
-        .from("UsersSQL")
-        .update({
-          email_code: code,
-          email_code_expires: new Date(Date.now() + 10 * 60 * 1000)
-        })
-        .eq("uid", uid);
-
-      // 6️⃣ SendGrid email (browser-safe using no-cors)
-      fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Authorization": `Bearer ${SENDGRID_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          personalizations: [
-            {
-              to: [{ email }],
-              subject: "Your SpinWinToken Verification Code"
-            }
-          ],
-          from: { email: "no-reply@spinwintoken.com" },
-          content: [
-            {
-              type: "text/plain",
-              value: `Your verification code is ${code}. It expires in 10 minutes.`
-            }
-          ]
-        })
-      });
-
-      // 7️⃣ Store email
-      localStorage.setItem("pending_email", email);
-
-      statusEl.textContent = "Code sent. Check your email.";
+      statusEl.textContent = "Account created. Please check your email to confirm.";
       statusEl.classList.add("success");
+      form.reset();
+    }
 
-      // 8️⃣ Redirect
-      setTimeout(() => {
-        window.location.href = "verifycode.html";
-      }, 1200);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      completeSignup(document.getElementById("recaptchaToken").value);
     });
   </script>
 </body>
